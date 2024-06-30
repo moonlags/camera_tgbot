@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"os/exec"
 	"time"
@@ -32,7 +33,7 @@ func NewServer(bot *tgbotapi.BotAPI) *Server {
 		photos: make(chan Photo),
 		vars: &ServerVars{
 			password:      os.Getenv("PASSWORD"),
-			guestPassword: os.Getenv("PASSWORD"),
+			guestPassword: fmt.Sprint(rand.Uint64()),
 		},
 	}
 	return server
@@ -59,7 +60,7 @@ func (server *Server) photosHandler() {
 
 	var currentX int
 	for photo := range server.photos {
-		cmd := exec.Command("./motor_driver.bin", fmt.Sprintf("%v %v False %v 3 wget -N -P . http://127.0.0.1:8080/photoaf.jpg", photo.x, photo.y, currentX))
+		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Error taking a shot:", err)
 		}
