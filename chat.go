@@ -177,6 +177,7 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.protectedHandler
 	}
 	if err := chat.requestPhoto(x, y); err != nil {
 		msg := tgbotapi.NewMessage(chat.id, err.Error())
@@ -224,13 +225,12 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 	}
 	var x, y int
 	if _, err := fmt.Sscanf(update.Message.Text, "%d %d", &x, &y); err != nil {
-		msg := tgbotapi.NewMessage(
-			chat.id,
-			"Values should be in format of 'X Y', where X and Y are integers",
-		)
+		msg := tgbotapi.NewMessage(chat.id,
+			"Values should be in format of 'X Y', where X and Y are integers")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		continue
 	}
 	if err := chat.requestPhoto(x, y); err != nil {
 		msg := tgbotapi.NewMessage(chat.id, err.Error())
