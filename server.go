@@ -97,7 +97,7 @@ func (server *Server) eventsHandler() {
 }
 
 func (server *Server) handleOrCreateChat(update tgbotapi.Update) {
-	if _, ok := server.chats[update.FromChat().ID]; ok {
+	if _, ok := server.chats[update.FromChat().ID]; !ok {
 		chat := &Chat{
 			bot:    server.bot,
 			id:     update.FromChat().ID,
