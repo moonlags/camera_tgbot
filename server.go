@@ -65,7 +65,16 @@ func (server *Server) photosHandler() {
 			log.Fatal("Error taking a shot:", err)
 		}
 		currentX = photo.x
-		msg := tgbotapi.NewPhoto(photo.id, tgbotapi.FilePath("photoaf.jpg"))
+		file, err := os.Open("photoaf.jpg")
+		if err != nil {
+			exec.Command("./phone_init.sh").Run()
+			msg := tgbotapi.NewMessage(photo.id, "Error occured, please try again")
+			if _, err := server.bot.Send(msg); err != nil {
+				log.Fatal("Failed to send a message:", err)
+			}
+			continue
+		}
+		msg := tgbotapi.NewPhoto(photo.id, tgbotapi.FileReader{Name: "image.jpg", Reader: file})
 		msg.Caption = fmt.Sprintf("X: %v Y: %v", photo.x, photo.y)
 		if _, err := server.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
