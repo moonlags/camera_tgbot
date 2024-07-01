@@ -57,7 +57,6 @@ func (server *Server) photosHandler() {
 	if err := cmd.Run(); err != nil {
 		log.Fatal("Error turning camera to 0:", err)
 	}
-
 	var currentX int
 	for photo := range server.photos {
 		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
@@ -103,6 +102,7 @@ func (server *Server) handleOrCreateChat(update tgbotapi.Update) {
 			id:     update.FromChat().ID,
 			photos: server.photos,
 			events: server.events,
+			vars:   server.vars,
 		}
 		chat.handler = chat.unauthorizedHandler
 		server.chats[chat.id] = chat
