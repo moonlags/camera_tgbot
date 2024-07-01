@@ -56,6 +56,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.protectedHandler
 	case "/dice":
 		x, y := 360/6*chat.diceRoll(), 90/6*chat.diceRoll()
 		time.Sleep(5 * time.Second)
@@ -64,6 +65,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 			log.Fatal("Error sending a message:", err)
 		}
 		chat.requestPhoto(x, y)
+		return chat.protectedHandler
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(chat.id,
@@ -71,12 +73,14 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.protectedHandler
 	case "/eventcreate":
 		if _, ok := chat.events[chat.id]; ok {
 			msg := tgbotapi.NewMessage(chat.id, "Please delete your existing event first")
 			if _, err := chat.bot.Send(msg); err != nil {
 				log.Fatal("Error sending a message:", err)
 			}
+			return chat.protectedHandler
 		} else {
 			msg := tgbotapi.NewMessage(chat.id, "Specify 'X Y Hour Minute' to create an event")
 			if _, err := chat.bot.Send(msg); err != nil {
@@ -90,6 +94,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 			if _, err := chat.bot.Send(msg); err != nil {
 				log.Fatal("Error sending a message:", err)
 			}
+			return chat.protectedHandler
 		} else {
 			msg := tgbotapi.NewMessage(chat.id, "Specify 'X Y' to create an event")
 			if _, err := chat.bot.Send(msg); err != nil {
@@ -103,11 +108,13 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}
+		return chat.protectedHandler
 	case "/guestpass":
 		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Guest password is %v", chat.vars.guestPassword))
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}
+		return chat.protectedHandler
 	}
 	return nil
 }
@@ -191,13 +198,12 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 	switch update.Message.Text {
 	case "/help":
-		msg := tgbotapi.NewMessage(
-			chat.id,
-			"/help -  Get a list of commands\n/dice - Throw a dice and take a photo\n/sunsettime - Get sunset time\n",
-		)
+		msg := tgbotapi.NewMessage(chat.id,
+			"/help -  Get a list of commands\n/dice - Throw a dice and take a photo\n/sunsettime - Get sunset time\n")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.guestHandler
 	case "/dice":
 		x, y := 360/6*chat.diceRoll(), 90/6*chat.diceRoll()
 		time.Sleep(5 * time.Second)
@@ -206,6 +212,7 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 			log.Fatal("Error sending a message:", err)
 		}
 		chat.requestPhoto(x, y)
+		return chat.guestHandler
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(
@@ -215,6 +222,7 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.guestHandler
 	}
 	return nil
 }
@@ -230,7 +238,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
-		continue
+		return chat.guestHandler
 	}
 	if err := chat.requestPhoto(x, y); err != nil {
 		msg := tgbotapi.NewMessage(chat.id, err.Error())
