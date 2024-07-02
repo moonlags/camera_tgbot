@@ -75,7 +75,7 @@ func (server *Server) sunsetHandler() {
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
 		}
-		server.vars.sunsetTime = sunsetTime.Local()
+		server.vars.sunsetTime = sunsetTime.AddDate(2000, 0, 0).Local()
 		time.Sleep(time.Hour * 24)
 	}
 }
