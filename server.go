@@ -71,7 +71,7 @@ func (server *Server) sunsetHandler() {
 		if err := json.NewDecoder(response.Body).Decode(&sunsetTime); err != nil {
 			log.Fatal("Failed to decode json:", err)
 		}
-		server.vars.sunsetTime, err = time.Parse("3:04:05 PM", sunsetTime.Results.Sunset)
+		server.vars.sunsetTime, err = time.Parse("3:04:05 PM MST", sunsetTime.Results.Sunset+" UTC")
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
 		}
