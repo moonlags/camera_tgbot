@@ -138,7 +138,7 @@ func (chat *Chat) sunsetEventCreationHanlder(update tgbotapi.Update) handlerFn {
 		}
 		return chat.sunsetEventCreationHanlder
 	}
-	chat.events[chat.id] = &SunsetEvent{X: x, Y: y, ID: chat.id}
+	chat.events[chat.id] = &SunsetEvent{X: x, Y: y, ID: chat.id, Sunset: &chat.vars.sunsetTime}
 	msg := tgbotapi.NewMessage(chat.id, "Sunset event created")
 	if _, err := chat.bot.Send(msg); err != nil {
 		log.Fatal("Failed to send a message:", err)
