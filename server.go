@@ -57,8 +57,9 @@ func (server *Server) photosHandler() {
 	if err := cmd.Run(); err != nil {
 		log.Fatal("Error turning camera to 0:", err)
 	}
-	var currentX int
+	var currentX, queue int
 	for photo := range server.photos {
+		queue++
 		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Error taking a shot:", err)
@@ -80,6 +81,10 @@ func (server *Server) photosHandler() {
 			log.Fatal("Error sending a message:", err)
 		}
 		os.Remove("photoaf.jpg")
+		if queue >= 10 {
+			time.Sleep(time.Minute * 5)
+			queue = 0
+		}
 	}
 }
 
