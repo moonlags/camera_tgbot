@@ -65,17 +65,18 @@ func (server *Server) sunsetHandler() {
 		defer response.Body.Close()
 		var respStruct struct {
 			Results struct {
+				Date   string `json:"date"`
 				Sunset string `json:"sunset"`
 			} `json:"results"`
 		}
 		if err := json.NewDecoder(response.Body).Decode(&respStruct); err != nil {
 			log.Fatal("Failed to decode json:", err)
 		}
-		sunsetTime, err := time.Parse("3:04:05 PM", respStruct.Results.Sunset)
+		sunsetTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+" "+respStruct.Results.Sunset)
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
 		}
-		server.vars.sunsetTime = sunsetTime.AddDate(2000, 0, 0).Local()
+		server.vars.sunsetTime = sunsetTime.Local()
 		time.Sleep(time.Hour * 24)
 	}
 }
