@@ -1,9 +1,11 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
 	"time"
@@ -33,7 +35,7 @@ func NewServer(bot *tgbotapi.BotAPI) *Server {
 		photos: make(chan Photo),
 		vars: &ServerVars{
 			password:      os.Getenv("PASSWORD"),
-			guestPassword: fmt.Sprint(rand.Uint64()),
+			guestPassword: fmt.Sprint(rand.Uint32()),
 		},
 	}
 	return server
@@ -42,6 +44,7 @@ func NewServer(bot *tgbotapi.BotAPI) *Server {
 func (server *Server) Run(config tgbotapi.UpdateConfig) {
 	go server.photosHandler()
 	go server.eventsHandler()
+	go server.sunsetHandler()
 
 	updates := server.bot.GetUpdatesChan(config)
 	for update := range updates {
@@ -52,14 +55,37 @@ func (server *Server) Run(config tgbotapi.UpdateConfig) {
 	}
 }
 
+func (server *Server) sunsetHandler() {
+	for {
+		url := "https://api.sunrisesunset.io/json?lat=56.968&lng=23.77038&timezone=UTC"
+		response, err := http.Get(url)
+		if err != nil {
+			log.Fatal("Failed to make http request:", err)
+		}
+		defer response.Body.Close()
+		var sunsetTime struct {
+			Results struct {
+				Sunset string `json:"sunset"`
+			} `json:"results"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&sunsetTime); err != nil {
+			log.Fatal("Failed to decode json:", err)
+		}
+		server.vars.sunsetTime, err = time.Parse("3:04:05 PM", sunsetTime.Results.Sunset)
+		if err != nil {
+			log.Fatal("Failed to parse sunset time:", err)
+		}
+		time.Sleep(time.Hour * 24)
+	}
+}
+
 func (server *Server) photosHandler() {
 	cmd := exec.Command("./motor_driver.bin", "0", "0", "True", "0", "3", "")
 	if err := cmd.Run(); err != nil {
 		log.Fatal("Error turning camera to 0:", err)
 	}
-	var currentX, queue int
+	var currentX int
 	for photo := range server.photos {
-		queue++
 		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Error taking a shot:", err)
@@ -81,10 +107,6 @@ func (server *Server) photosHandler() {
 			log.Fatal("Error sending a message:", err)
 		}
 		os.Remove("photoaf.jpg")
-		if queue >= 10 {
-			time.Sleep(time.Minute * 5)
-			queue = 0
-		}
 	}
 }
 
@@ -96,6 +118,13 @@ func (server *Server) eventsHandler() {
 				continue
 			}
 			x, y := event.GetPos()
+			if len(server.photos) >= 5 {
+				msg := tgbotapi.NewMessage(event.GetID(), "No place for event photo in queue, try again later")
+				if _, err := server.bot.Send(msg); err != nil {
+					log.Fatal("Failed to send a message:", err)
+				}
+				continue
+			}
 			server.photos <- Photo{x: x, y: y, id: event.GetID()}
 		}
 	}

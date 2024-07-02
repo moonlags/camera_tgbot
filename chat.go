@@ -38,7 +38,7 @@ func (chat *Chat) unauthorizedHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
-		chat.vars.guestPassword = fmt.Sprint(rand.Uint64())
+		chat.vars.guestPassword = fmt.Sprint(rand.Uint32())
 		return chat.guestHandler
 	}
 	msg := tgbotapi.NewMessage(chat.id, "Hello, please send a password")
@@ -69,7 +69,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(chat.id,
-			fmt.Sprintf("Today you can see sunset at %v:%v", stime.Hour(), stime.Minute()))
+			fmt.Sprintf("Today you can see sunset in Jurmala at %02d:%02d", stime.Hour(), stime.Minute()))
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
@@ -221,7 +221,7 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(
 			chat.id,
-			fmt.Sprintf("Today you can see sunset at %v:%v", stime.Hour(), stime.Minute()),
+			fmt.Sprintf("Today you can see sunset in Jurmala at %02d:%02d", stime.Hour(), stime.Minute()),
 		)
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
@@ -260,6 +260,8 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 func (chat *Chat) requestPhoto(x int, y int) error {
 	if x < 0 || x > 360 || y < 0 || y > 90 {
 		return fmt.Errorf("X should be in range 0 - 360, Y in range 0 - 90")
+	} else if len(chat.photos) >= 5 {
+		return fmt.Errorf("Queue is full, try again later")
 	}
 	chat.photos <- Photo{x, y, chat.id}
 	return nil
