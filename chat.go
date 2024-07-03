@@ -191,6 +191,7 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.protectedHandler
 	}
 	msg := tgbotapi.NewMessage(chat.id, "Your photo is in the queue, please wait")
 	if _, err := chat.bot.Send(msg); err != nil {
@@ -249,6 +250,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
+		return chat.guestHandler
 	}
 	msg := tgbotapi.NewMessage(chat.id, "Your photo is in the queue, please wait")
 	if _, err := chat.bot.Send(msg); err != nil {

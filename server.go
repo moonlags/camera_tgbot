@@ -96,7 +96,6 @@ func (server *Server) photosHandler() {
 		file, err := os.Open("photoaf.jpg")
 		if err != nil {
 			exec.Command("./phone_init.sh").Run()
-			fmt.Println("Failed to open photo:", err)
 			msg := tgbotapi.NewMessage(photo.id, "Error occured, please try again")
 			if _, err := server.bot.Send(msg); err != nil {
 				log.Fatal("Failed to send a message:", err)
