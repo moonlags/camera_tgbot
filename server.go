@@ -32,7 +32,7 @@ func NewServer(bot *tgbotapi.BotAPI) *Server {
 		bot:    bot,
 		chats:  make(map[int64]*Chat),
 		events: make(map[int64]Event),
-		photos: make(chan Photo),
+		photos: make(chan Photo, 5),
 		vars: &ServerVars{
 			password:      os.Getenv("PASSWORD"),
 			guestPassword: fmt.Sprint(rand.Uint32()),
@@ -51,7 +51,7 @@ func (server *Server) Run(config tgbotapi.UpdateConfig) {
 		if update.Message == nil {
 			continue
 		}
-		server.handleOrCreateChat(update)
+		go server.handleOrCreateChat(update)
 	}
 }
 

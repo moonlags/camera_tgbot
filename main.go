@@ -23,7 +23,6 @@ func main() {
 	if err != nil {
 		log.Fatal("Error creating bot:", err)
 	}
-	// bot.Debug = true
 	server := NewServer(bot)
 	server.Run(tgbotapi.NewUpdate(0))
 }
