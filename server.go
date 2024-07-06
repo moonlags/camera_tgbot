@@ -95,12 +95,16 @@ func (server *Server) photosHandler() {
 	}
 	var currentX int
 	for photo := range server.photos {
+		if time.Now().After(server.vars.sunsetTime.Add(time.Minute*10)) || time.Now().Before(server.vars.sunriseTime) {
+			enableNightVision()
+		}
 		setZoom(photo.zoom)
 		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Error taking a shot:", err)
 		}
 		setZoom(0)
+		disableNightVision()
 		currentX = photo.x
 		file, err := os.Open("photoaf.jpg")
 		if err != nil {
