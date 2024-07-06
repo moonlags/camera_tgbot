@@ -78,7 +78,7 @@ func (server *Server) sunsetHandler() {
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
 		}
-		sunriseTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+""+respStruct.Results.Sunrise)
+		sunriseTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+" "+respStruct.Results.Sunrise)
 		if err != nil {
 			log.Fatal("Failed to parse sunrise time:", err)
 		}
