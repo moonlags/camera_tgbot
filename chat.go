@@ -71,9 +71,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
-		return func(update tgbotapi.Update) handlerFn {
-			return chat.zoomHandler(update, chat.handler)
-		}
+		return chat.zoomHandler
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(chat.id,
@@ -127,7 +125,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 	return nil
 }
 
-func (chat *Chat) zoomHandler(update tgbotapi.Update, previous handlerFn) handlerFn {
+func (chat *Chat) zoomHandler(update tgbotapi.Update) handlerFn {
 	if handler := chat.commandsHandler(update); handler != nil {
 		return handler
 	}
@@ -137,12 +135,14 @@ func (chat *Chat) zoomHandler(update tgbotapi.Update, previous handlerFn) handle
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}
-		return func(u tgbotapi.Update) handlerFn {
-			return chat.zoomHandler(update, previous)
-		}
+		return chat.zoomHandler
 	}
 	chat.zoom = zoom
-	return previous
+	msg := tgbotapi.NewMessage(chat.id, "New zoom is set")
+	if _, err := chat.bot.Send(msg); err != nil {
+		log.Fatal("Failed to send a message:", err)
+	}
+	return chat.protectedHandler
 }
 
 func (chat *Chat) sunsetEventCreationHanlder(update tgbotapi.Update) handlerFn {
@@ -230,19 +230,11 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 	switch update.Message.Text {
 	case "/help":
 		msg := tgbotapi.NewMessage(chat.id,
-			"/help -  Get a list of commands\n/zoom - set zoom\n/random - Take a random photo\n/sunsettime - Get sunset time\n")
+			"/help -  Get a list of commands\n/random - Take a random photo\n/sunsettime - Get sunset time\n")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
 		return chat.guestHandler
-	case "/zoom":
-		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Your current zoom is %v, type a number between 0 and 10", chat.zoom))
-		if _, err := chat.bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
-		}
-		return func(update tgbotapi.Update) handlerFn {
-			return chat.zoomHandler(update, chat.handler)
-		}
 	case "/random":
 		x, y, zoom := rand.Intn(361), rand.Intn(91), rand.Intn(11)
 		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Taking photo on X: %v Y: %v with zoom %v", x, y, zoom))
