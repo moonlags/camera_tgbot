@@ -14,6 +14,7 @@ type Chat struct {
 	id      int64
 	photos  chan Photo
 	events  map[int64]Event
+	zoom    int
 	handler handlerFn
 	vars    *ServerVars
 }
@@ -52,20 +53,27 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 	switch update.Message.Text {
 	case "/help":
 		msg := tgbotapi.NewMessage(chat.id,
-			"/help -  Get a list of commands\n/dice - Throw a dice and take a photo\n/eventcreate - Create an event\n/eventsunset - Create sunset event\n/eventdelete - Delete an event\n/sunsettime - Get sunset time\n/guestpass - Generate guest password")
+			"/help -  Get a list of commands\n/random - Take a random photo\n/zoom - set zoom\n/eventcreate - Create an event\n/eventsunset - Create sunset event\n/eventdelete - Delete an event\n/sunsettime - Get sunset time\n/guestpass - Generate guest password")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
 		return chat.protectedHandler
-	case "/dice":
-		x, y := 360/6*chat.diceRoll(), 90/6*chat.diceRoll()
-		time.Sleep(5 * time.Second)
-		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Taking photo on X: %v Y: %v", x, y))
+	case "/random":
+		x, y, zoom := rand.Intn(361), rand.Intn(91), rand.Intn(11)
+		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Taking photo on X: %v Y: %v with zoom %v", x, y, zoom))
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
-		chat.requestPhoto(x, y)
+		chat.requestPhoto(x, y, zoom)
 		return chat.protectedHandler
+	case "/zoom":
+		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Your current zoom is %v, type a number between 0 and 10", chat.zoom))
+		if _, err := chat.bot.Send(msg); err != nil {
+			log.Fatal("Error sending a message:", err)
+		}
+		return func(update tgbotapi.Update) handlerFn {
+			return chat.zoomHandler(update, chat.handler)
+		}
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
 		msg := tgbotapi.NewMessage(chat.id,
@@ -86,7 +94,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 			if _, err := chat.bot.Send(msg); err != nil {
 				log.Fatal("Failed to send a message:", err)
 			}
-			return chat.eventCreationHanlder
+			return chat.eventCreationHandler
 		}
 	case "/eventsunset":
 		if _, ok := chat.events[chat.id]; ok {
@@ -119,6 +127,24 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 	return nil
 }
 
+func (chat *Chat) zoomHandler(update tgbotapi.Update, previous handlerFn) handlerFn {
+	if handler := chat.commandsHandler(update); handler != nil {
+		return handler
+	}
+	var zoom int
+	if _, err := fmt.Sscanf(update.Message.Text, "%d", &zoom); err != nil || zoom < 0 || zoom > 10 {
+		msg := tgbotapi.NewMessage(chat.id, "Zoom should be an integer between 0 and 10")
+		if _, err := chat.bot.Send(msg); err != nil {
+			log.Fatal("Failed to send a message:", err)
+		}
+		return func(u tgbotapi.Update) handlerFn {
+			return chat.zoomHandler(update, previous)
+		}
+	}
+	chat.zoom = zoom
+	return previous
+}
+
 func (chat *Chat) sunsetEventCreationHanlder(update tgbotapi.Update) handlerFn {
 	if handler := chat.commandsHandler(update); handler != nil {
 		return handler
@@ -146,7 +172,7 @@ func (chat *Chat) sunsetEventCreationHanlder(update tgbotapi.Update) handlerFn {
 	return chat.protectedHandler
 }
 
-func (chat *Chat) eventCreationHanlder(update tgbotapi.Update) handlerFn {
+func (chat *Chat) eventCreationHandler(update tgbotapi.Update) handlerFn {
 	if handler := chat.commandsHandler(update); handler != nil {
 		return handler
 	}
@@ -156,14 +182,14 @@ func (chat *Chat) eventCreationHanlder(update tgbotapi.Update) handlerFn {
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}
-		return chat.eventCreationHanlder
+		return chat.eventCreationHandler
 	}
 	if x < 0 || x > 360 || y < 0 || y > 90 || hour < 0 || hour > 24 || minute < 0 || minute > 59 {
 		msg := tgbotapi.NewMessage(chat.id, "X should be in range 0 - 360, Y 0 - 90, Hour 0 - 24, Minute 0 - 59")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}
-		return chat.eventCreationHanlder
+		return chat.eventCreationHandler
 	}
 	chat.events[chat.id] = &StaticEvent{X: x, Y: y, ShotTime: time.Date(0, 0, 0, hour, minute, 0, 0, time.Local), ID: chat.id}
 	msg := tgbotapi.NewMessage(chat.id, "Event created")
@@ -186,7 +212,7 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 		}
 		return chat.protectedHandler
 	}
-	if err := chat.requestPhoto(x, y); err != nil {
+	if err := chat.requestPhoto(x, y, chat.zoom); err != nil {
 		msg := tgbotapi.NewMessage(chat.id, err.Error())
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
@@ -204,19 +230,26 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 	switch update.Message.Text {
 	case "/help":
 		msg := tgbotapi.NewMessage(chat.id,
-			"/help -  Get a list of commands\n/dice - Throw a dice and take a photo\n/sunsettime - Get sunset time\n")
+			"/help -  Get a list of commands\n/zoom - set zoom\n/random - Take a random photo\n/sunsettime - Get sunset time\n")
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
 		return chat.guestHandler
-	case "/dice":
-		x, y := 360/6*chat.diceRoll(), 90/6*chat.diceRoll()
-		time.Sleep(5 * time.Second)
-		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Taking photo on X: %v Y: %v", x, y))
+	case "/zoom":
+		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Your current zoom is %v, type a number between 0 and 10", chat.zoom))
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
-		chat.requestPhoto(x, y)
+		return func(update tgbotapi.Update) handlerFn {
+			return chat.zoomHandler(update, chat.handler)
+		}
+	case "/random":
+		x, y, zoom := rand.Intn(361), rand.Intn(91), rand.Intn(11)
+		msg := tgbotapi.NewMessage(chat.id, fmt.Sprintf("Taking photo on X: %v Y: %v with zoom %v", x, y, zoom))
+		if _, err := chat.bot.Send(msg); err != nil {
+			log.Fatal("Error sending a message:", err)
+		}
+		chat.requestPhoto(x, y, zoom)
 		return chat.guestHandler
 	case "/sunsettime":
 		stime := chat.vars.sunsetTime
@@ -245,7 +278,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 		}
 		return chat.guestHandler
 	}
-	if err := chat.requestPhoto(x, y); err != nil {
+	if err := chat.requestPhoto(x, y, chat.zoom); err != nil {
 		msg := tgbotapi.NewMessage(chat.id, err.Error())
 		if _, err := chat.bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
@@ -259,21 +292,12 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 	return chat.guestHandler
 }
 
-func (chat *Chat) requestPhoto(x int, y int) error {
+func (chat *Chat) requestPhoto(x int, y int, zoom int) error {
 	if x < 0 || x > 360 || y < 0 || y > 90 {
 		return fmt.Errorf("X should be in range 0 - 360, Y in range 0 - 90")
 	} else if len(chat.photos) >= 5 {
 		return fmt.Errorf("Queue is full, try again later")
 	}
-	chat.photos <- Photo{x, y, chat.id}
+	chat.photos <- Photo{x, y, chat.id, zoom}
 	return nil
-}
-
-func (chat *Chat) diceRoll() int {
-	dice := tgbotapi.NewDice(chat.id)
-	result, err := chat.bot.Send(dice)
-	if err != nil {
-		log.Fatal("Error sending a dice:", err)
-	}
-	return result.Dice.Value
 }

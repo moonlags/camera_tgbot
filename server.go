@@ -23,6 +23,7 @@ type Server struct {
 
 type ServerVars struct {
 	sunsetTime    time.Time
+	sunriseTime   time.Time
 	password      string
 	guestPassword string
 }
@@ -65,8 +66,9 @@ func (server *Server) sunsetHandler() {
 		defer response.Body.Close()
 		var respStruct struct {
 			Results struct {
-				Date   string `json:"date"`
-				Sunset string `json:"sunset"`
+				Date    string `json:"date"`
+				Sunset  string `json:"sunset"`
+				Sunrise string `json:"sunrise"`
 			} `json:"results"`
 		}
 		if err := json.NewDecoder(response.Body).Decode(&respStruct); err != nil {
@@ -76,6 +78,11 @@ func (server *Server) sunsetHandler() {
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
 		}
+		sunriseTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+""+respStruct.Results.Sunrise)
+		if err != nil {
+			log.Fatal("Failed to parse sunrise time:", err)
+		}
+		server.vars.sunriseTime = sunriseTime.Local()
 		server.vars.sunsetTime = sunsetTime.Local()
 		time.Sleep(time.Hour * 24)
 	}
@@ -88,10 +95,12 @@ func (server *Server) photosHandler() {
 	}
 	var currentX int
 	for photo := range server.photos {
+		setZoom(photo.zoom)
 		cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 		if err := cmd.Run(); err != nil {
 			log.Fatal("Error taking a shot:", err)
 		}
+		setZoom(0)
 		currentX = photo.x
 		file, err := os.Open("photoaf.jpg")
 		if err != nil {
