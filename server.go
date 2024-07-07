@@ -82,7 +82,7 @@ func (server *Server) sunsetHandler() {
 		if err != nil {
 			log.Fatal("Failed to parse sunrise time:", err)
 		}
-		server.vars.sunriseTime = sunriseTime.Local()
+		server.vars.sunriseTime = sunriseTime.AddDate(0, 0, 1).Local()
 		server.vars.sunsetTime = sunsetTime.Local()
 		time.Sleep(time.Hour * 24)
 	}
@@ -95,7 +95,7 @@ func (server *Server) photosHandler() {
 	}
 	var currentX int
 	for photo := range server.photos {
-		if time.Now().After(server.vars.sunsetTime.Add(time.Minute*10)) || time.Now().Before(server.vars.sunriseTime) {
+		if time.Now().After(server.vars.sunsetTime.Add(time.Hour)) && time.Now().Before(server.vars.sunriseTime) {
 			enableNightVision()
 		}
 		setZoom(photo.zoom)
