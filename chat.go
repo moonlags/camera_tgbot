@@ -10,13 +10,13 @@ import (
 )
 
 type Chat struct {
-	bot     *tgbotapi.BotAPI
 	id      int64
+	zoom    int
 	photos  chan Photo
 	events  map[int64]Event
-	zoom    int
-	handler handlerFn
 	vars    *ServerVars
+	bot     *tgbotapi.BotAPI
+	handler handlerFn
 }
 
 func (chat *Chat) handle(update tgbotapi.Update) {
@@ -286,9 +286,9 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 
 func (chat *Chat) requestPhoto(x int, y int, zoom int) error {
 	if x < 0 || x > 360 || y < 0 || y > 90 {
-		return fmt.Errorf("X should be in range 0 - 360, Y in range 0 - 90")
+		return fmt.Errorf("x should be in range 0 - 360, Y in range 0 - 90")
 	} else if len(chat.photos) >= 5 {
-		return fmt.Errorf("Queue is full, try again later")
+		return fmt.Errorf("queue is full, try again later")
 	}
 	chat.photos <- Photo{x, y, chat.id, zoom}
 	return nil

@@ -63,7 +63,6 @@ func (server *Server) sunsetHandler() {
 		if err != nil {
 			log.Fatal("Failed to make http request:", err)
 		}
-		defer response.Body.Close()
 		var respStruct struct {
 			Results struct {
 				Date    string `json:"date"`
@@ -74,6 +73,7 @@ func (server *Server) sunsetHandler() {
 		if err := json.NewDecoder(response.Body).Decode(&respStruct); err != nil {
 			log.Fatal("Failed to decode json:", err)
 		}
+		response.Body.Close()
 		sunsetTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+" "+respStruct.Results.Sunset)
 		if err != nil {
 			log.Fatal("Failed to parse sunset time:", err)
@@ -95,7 +95,7 @@ func (server *Server) photosHandler() {
 	}
 	var currentX int
 	for photo := range server.photos {
-		if time.Now().After(server.vars.sunsetTime.Add(time.Hour)) && time.Now().Before(server.vars.sunriseTime) {
+		if time.Now().After(server.vars.sunsetTime.Add(time.Minute*30)) && time.Now().Before(server.vars.sunriseTime) {
 			enableNightVision()
 		}
 		setZoom(photo.zoom)

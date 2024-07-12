@@ -9,9 +9,9 @@ type Event interface {
 }
 
 type StaticEvent struct {
+	ShotTime time.Time
 	X        int
 	Y        int
-	ShotTime time.Time
 	ID       int64
 }
 
@@ -28,9 +28,9 @@ func (event *StaticEvent) GetPos() (int, int) {
 }
 
 type SunsetEvent struct {
+	Sunset *time.Time
 	X      int
 	Y      int
-	Sunset *time.Time
 	ID     int64
 }
 

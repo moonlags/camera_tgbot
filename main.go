@@ -17,6 +17,7 @@ func init() {
 
 func main() {
 	defer func() {
+		recover()
 		debug.PrintStack()
 	}()
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TOKEN"))

@@ -6,7 +6,7 @@ import (
 )
 
 func setNightVisionGain(gain int) {
-	url := fmt.Sprintf("http://127.0.0.1:8080/settings/night_vision_gain?set=5")
+	url := fmt.Sprintf("http://127.0.0.1:8080/settings/night_vision_gain?set=%v",gain)
 	if _, err := http.Get(url); err != nil {
 		fmt.Println("Failed to set night vision gain:", err)
 	}
