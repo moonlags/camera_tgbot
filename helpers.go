@@ -5,6 +5,13 @@ import (
 	"net/http"
 )
 
+func setNightVisionGain(gain int) {
+	url := fmt.Sprintf("http://127.0.0.1:8080/settings/night_vision_gain?set=5")
+	if _, err := http.Get(url); err != nil {
+		fmt.Println("Failed to set night vision gain:", err)
+	}
+}
+
 func setZoom(zoom int) {
 	url := fmt.Sprintf("http://127.0.0.1:8080/ptz?zoom=%v", zoom)
 	if _, err := http.Get(url); err != nil {
