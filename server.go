@@ -96,6 +96,7 @@ func (server *Server) photosHandler() {
 	var currentX int
 	for photo := range server.photos {
 		if time.Now().After(server.vars.sunsetTime.Add(time.Minute*30)) && time.Now().Before(server.vars.sunriseTime) {
+			fmt.Println("enabling night vision")
 			enableNightVision()
 		}
 		setZoom(photo.zoom)
@@ -110,10 +111,7 @@ func (server *Server) photosHandler() {
 		if err != nil {
 			exec.Command("./phone_init.sh").Run()
 			setNightVisionGain(5)
-			msg := tgbotapi.NewMessage(photo.id, "Error occured, please try again")
-			if _, err := server.bot.Send(msg); err != nil {
-				log.Fatal("Failed to send a message:", err)
-			}
+			server.photos <- photo
 			continue
 		}
 		msg := tgbotapi.NewPhoto(photo.id, tgbotapi.FileReader{Name: "image.jpg", Reader: file})
