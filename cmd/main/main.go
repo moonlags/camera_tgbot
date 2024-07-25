@@ -3,7 +3,8 @@ package main
 import (
 	"log"
 	"os"
-	"runtime/debug"
+
+	"example/sashaTelegram/internal/server"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
@@ -16,14 +17,10 @@ func init() {
 }
 
 func main() {
-	defer func() {
-		recover()
-		debug.PrintStack()
-	}()
 	bot, err := tgbotapi.NewBotAPI(os.Getenv("TOKEN"))
 	if err != nil {
 		log.Fatal("Error creating bot:", err)
 	}
-	server := NewServer(bot)
+	server := server.New(bot, os.Getenv("PASSWORD"))
 	server.Run(tgbotapi.NewUpdate(0))
 }

@@ -2,3 +2,4 @@
 go.sum
 phone_init.sh
 motor_driver.bin
+build/
