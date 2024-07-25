@@ -2,8 +2,8 @@ package photo
 
 import (
 	"fmt"
-	"io"
 	"net/http"
+	"os"
 	"os/exec"
 )
 
@@ -30,21 +30,16 @@ func New(x int, y int, zoom int, id int64) (*Photo, error) {
 
 func (p *Photo) Take(curr int) ([]byte, error) {
 	p.setZoom()
-	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.X), fmt.Sprint(p.Y), "False", fmt.Sprint(curr), "3", "")
+	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.X), fmt.Sprint(p.Y), "False", fmt.Sprint(curr), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
-	resp, err := http.Get("http://127.0.0.1:8080/photoaf.jpg")
+	data, err := os.ReadFile("photoaf.jpg")
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	os.Remove("photoaf.jpg")
 
 	return data, err
 }
@@ -56,23 +51,3 @@ func (p *Photo) setZoom() error {
 	}
 	return nil
 }
-
-// setZoom(photo.zoom)
-// cmd := exec.Command("./motor_driver.bin", fmt.Sprint(photo.x), fmt.Sprint(photo.y), "False", fmt.Sprint(currentX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
-// if err := cmd.Run(); err != nil {
-// 	log.Fatal("Error taking a shot:", err)
-// }
-// setZoom(0)
-// currentX = photo.x
-// file, err := os.Open("photoaf.jpg")
-// if err != nil {
-// 	exec.Command("./phone_init.sh").Run()
-// 	server.photos <- photo
-// 	continue
-// }
-// msg := tgbotapi.NewPhoto(photo.id, tgbotapi.FileReader{Name: "image.jpg", Reader: file})
-// msg.Caption = fmt.Sprintf("X: %v Y: %v", photo.x, photo.y)
-// if _, err := server.bot.Send(msg); err != nil {
-// 	log.Fatal("Error sending a message:", err)
-// }
-// os.Remove("photoaf.jpg")

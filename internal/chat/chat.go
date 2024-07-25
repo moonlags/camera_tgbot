@@ -14,12 +14,12 @@ import (
 
 type Chat struct {
 	ID      int64
-	Zoom    int
-	Photos  chan *photo.Photo
-	Events  map[int64]event.Event
 	Config  *Config
-	Bot     *tgbotapi.BotAPI
+	Events  map[int64]event.Event
 	Handler handlerFn
+	Bot     *tgbotapi.BotAPI
+	Photos  chan *photo.Photo
+	Zoom    int
 }
 
 type Config struct {
@@ -249,7 +249,7 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 
 	photo, err := photo.New(x, y, chat.Zoom, chat.ID)
 	if err != nil {
-		msg := tgbotapi.NewMessage(chat.ID, err.Error())
+		msg := tgbotapi.NewMessage(chat.ID, "Error: "+err.Error())
 		if _, err := chat.Bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
@@ -314,7 +314,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 
 	photo, err := photo.New(x, y, chat.Zoom, chat.ID)
 	if err != nil {
-		msg := tgbotapi.NewMessage(chat.ID, err.Error())
+		msg := tgbotapi.NewMessage(chat.ID, "Error: "+err.Error())
 		if _, err := chat.Bot.Send(msg); err != nil {
 			log.Fatal("Error sending a message:", err)
 		}
