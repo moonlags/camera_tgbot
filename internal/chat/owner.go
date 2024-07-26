@@ -21,7 +21,7 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		}
 		return chat.protectedHandler
 	case "/mode":
-		msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Current mode is %d:\n0 - none\n1 - monochrome\n2 - negative\n3 - sepia\n4 - aqua\n5 - whiteboard\n6 - blackboard\n7 - nashville\n8 - hefe\n9 - valencia\n10 -xproll\n11 - lofi\n12 - sierra\n13 - walden"))
+		msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Current mode is %d:\n0 - none\n1 - monochrome\n2 - negative\n3 - sepia\n4 - aqua\n5 - whiteboard\n6 - blackboard\n7 - nashville\n8 - hefe\n9 - valencia\n10 -xproll\n11 - lofi\n12 - sierra\n13 - walden", chat.Mode))
 		if _, err := chat.Bot.Send(msg); err != nil {
 			log.Fatal("Failed to send a message:", err)
 		}

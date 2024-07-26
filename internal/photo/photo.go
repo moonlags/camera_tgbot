@@ -56,7 +56,7 @@ func (p *Photo) Take(curr int) ([]byte, error) {
 }
 
 func (p *Photo) setMode() error {
-	modes := []string{"none", "monochrome", "negative", "sepia", "aqua", "whiteboard", "blackboard", "nashville", "hefe", "valencia", "xproll", "lofi", "sierra", "walden"}
+	modes := []string{"none", "mono", "negative", "sepia", "aqua", "whiteboard", "blackboard", "nashville", "hefe", "valencia", "xproll", "lofi", "sierra", "walden"}
 	url := "http://127.0.0.1:8080/settings/coloreffect?set=" + modes[p.Mode]
 	if _, err := http.Get(url); err != nil {
 		return err
