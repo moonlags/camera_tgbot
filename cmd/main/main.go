@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	"example/sashaTelegram/internal/openweathermap"
 	"example/sashaTelegram/internal/server"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -22,5 +23,5 @@ func main() {
 		log.Fatal("Error creating bot:", err)
 	}
 	server := server.New(bot, os.Getenv("PASSWORD"))
-	server.Run(tgbotapi.NewUpdate(0))
+	server.Run(tgbotapi.NewUpdate(0), openweathermap.New(os.Getenv("WEATHER_KEY")))
 }

@@ -1,16 +1,13 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
-	"net/http"
-	"os/exec"
 	"time"
 
 	"example/sashaTelegram/internal/chat"
 	"example/sashaTelegram/internal/event"
+	"example/sashaTelegram/internal/openweathermap"
 	"example/sashaTelegram/internal/photo"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -38,10 +35,10 @@ func New(bot *tgbotapi.BotAPI, password string) *Server {
 	return server
 }
 
-func (server *Server) Run(config tgbotapi.UpdateConfig) {
+func (server *Server) Run(config tgbotapi.UpdateConfig, owm *openweathermap.Config) {
 	go server.photosHandler()
 	go server.eventsHandler()
-	go server.sunsetHandler()
+	go server.sunsetHandler("Jurmala", owm)
 
 	updates := server.bot.GetUpdatesChan(config)
 	for update := range updates {
@@ -49,75 +46,6 @@ func (server *Server) Run(config tgbotapi.UpdateConfig) {
 			continue
 		}
 		go server.passToChat(update)
-	}
-}
-
-func (server *Server) sunsetHandler() {
-	for {
-		url := "https://api.sunrisesunset.io/json?lat=56.968&lng=23.77038&timezone=UTC"
-		response, err := http.Get(url)
-		if err != nil {
-			log.Fatal("Failed to make http request:", err)
-		}
-		var respStruct struct {
-			Results struct {
-				Date   string `json:"date"`
-				Sunset string `json:"sunset"`
-			} `json:"results"`
-		}
-		if err := json.NewDecoder(response.Body).Decode(&respStruct); err != nil {
-			log.Fatal("Failed to decode json:", err)
-		}
-		response.Body.Close()
-		sunsetTime, err := time.Parse("2006-01-02 3:04:05 PM", respStruct.Results.Date+" "+respStruct.Results.Sunset)
-		if err != nil {
-			log.Fatal("Failed to parse sunset time:", err)
-		}
-		server.config.SunsetTime = sunsetTime.Local()
-		time.Sleep(time.Hour * 24)
-	}
-}
-
-func (server *Server) photosHandler() {
-	cmd := exec.Command("./motor_driver.bin", "0", "0", "True", "0", "3", "")
-	if err := cmd.Run(); err != nil {
-		log.Fatal("Error turning camera to 0:", err)
-	}
-	var currentX int
-	for photo := range server.photos {
-		data, err := photo.Take(currentX)
-		if err != nil {
-			exec.Command("./phone_init.sh").Run()
-			server.photos <- photo
-			log.Println("Failed to take a photo:", err)
-			continue
-		}
-		currentX = photo.X
-
-		msg := tgbotapi.NewPhoto(photo.ID, tgbotapi.FileBytes{Name: "image.jpg", Bytes: data})
-		msg.Caption = fmt.Sprintf("X: %v Y: %v", photo.X, photo.Y)
-		if _, err := server.bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
-		}
-	}
-}
-
-func (server *Server) eventsHandler() {
-	for {
-		time.Sleep(time.Minute)
-		for _, event := range server.events {
-			if !event.IsReady() {
-				continue
-			}
-			if len(server.photos) >= 5 {
-				msg := tgbotapi.NewMessage(event.ID(), "No place for event photo in queue, try again later")
-				if _, err := server.bot.Send(msg); err != nil {
-					log.Fatal("Failed to send a message:", err)
-				}
-				continue
-			}
-			server.photos <- event.Photo()
-		}
 	}
 }
 

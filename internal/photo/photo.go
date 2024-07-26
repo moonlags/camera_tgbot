@@ -12,9 +12,10 @@ type Photo struct {
 	Y    int
 	ID   int64
 	Zoom int
+	Mode int
 }
 
-func New(x int, y int, zoom int, id int64) (*Photo, error) {
+func New(x int, y int, zoom int, mode int, id int64) (*Photo, error) {
 	if x < 0 || x > 360 {
 		return nil, fmt.Errorf("x should be in range of 0 - 360, got: %d", x)
 	}
@@ -24,12 +25,22 @@ func New(x int, y int, zoom int, id int64) (*Photo, error) {
 	if zoom < 0 || zoom > 10 {
 		return nil, fmt.Errorf("zoom should be in range of 0 - 10, got: %d", zoom)
 	}
+	if mode < 0 || mode > 13 {
+		return nil, fmt.Errorf("mode should be in range of 0 - 13, got: %d", mode)
+	}
 
-	return &Photo{X: x, Y: y, Zoom: zoom, ID: id}, nil
+	return &Photo{X: x, Y: y, Zoom: zoom, Mode: mode, ID: id}, nil
 }
 
 func (p *Photo) Take(curr int) ([]byte, error) {
-	p.setZoom()
+	if err := p.setZoom(); err != nil {
+		return nil, err
+	}
+
+	if err := p.setMode(); err != nil {
+		return nil, err
+	}
+
 	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.X), fmt.Sprint(p.Y), "False", fmt.Sprint(curr), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 	if err := cmd.Run(); err != nil {
 		return nil, err
@@ -42,6 +53,15 @@ func (p *Photo) Take(curr int) ([]byte, error) {
 	os.Remove("photoaf.jpg")
 
 	return data, err
+}
+
+func (p *Photo) setMode() error {
+	modes := []string{"none", "monochrome", "negative", "sepia", "aqua", "whiteboard", "blackboard", "nashville", "hefe", "valencia", "xproll", "lofi", "sierra", "walden"}
+	url := "http://127.0.0.1:8080/settings/coloreffect?set=" + modes[p.Mode]
+	if _, err := http.Get(url); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (p *Photo) setZoom() error {
