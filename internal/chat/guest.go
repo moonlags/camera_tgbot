@@ -2,7 +2,6 @@ package chat
 
 import (
 	"fmt"
-	"log"
 	"math/rand"
 
 	"example/sashaTelegram/internal/photo"
@@ -16,14 +15,14 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 		msg := tgbotapi.NewMessage(chat.ID,
 			"/help -  Get a list of commands\n/random - Take a random photo\n/sunsettime - Get sunset time\n")
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		return chat.guestHandler
 	case "/random":
 		x, y, zoom, mode := rand.Intn(361), rand.Intn(91), rand.Intn(11), rand.Intn(14)
 		msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Taking photo on X: %v Y: %v Zoom: %v Mode: %d", x, y, zoom, mode))
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		photo, _ := photo.New(x, y, zoom, mode, chat.ID)
 		chat.Photos <- photo
@@ -35,7 +34,7 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 			fmt.Sprintf("Today you can see sunset in Jurmala at %02d:%02d", stime.Hour(), stime.Minute()),
 		)
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		return chat.guestHandler
 	}
@@ -52,7 +51,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 		msg := tgbotapi.NewMessage(chat.ID,
 			"Values should be in format of 'X Y'")
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		return chat.guestHandler
 	}
@@ -61,7 +60,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 	if err != nil {
 		msg := tgbotapi.NewMessage(chat.ID, "Error: "+err.Error())
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		return chat.guestHandler
 	}
@@ -69,7 +68,7 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 
 	msg := tgbotapi.NewMessage(chat.ID, "Your photo is in the queue, please wait")
 	if _, err := chat.Bot.Send(msg); err != nil {
-		log.Fatal("Failed to send a message:", err)
+		CantSendMessage(err)
 	}
 
 	return chat.guestHandler

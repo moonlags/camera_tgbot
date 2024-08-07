@@ -1,8 +1,8 @@
-package server
+package main
 
 import (
-	"fmt"
-	"math/rand"
+	"log/slog"
+	"os"
 	"time"
 
 	"example/sashaTelegram/internal/chat"
@@ -13,7 +13,7 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type Server struct {
+type server struct {
 	bot    *tgbotapi.BotAPI
 	chats  map[int64]*chat.Chat
 	events map[int64]event.Event
@@ -21,36 +21,32 @@ type Server struct {
 	config *chat.Config
 }
 
-func New(bot *tgbotapi.BotAPI, password string) *Server {
-	server := &Server{
-		bot:    bot,
-		chats:  make(map[int64]*chat.Chat),
-		events: make(map[int64]event.Event),
-		photos: make(chan *photo.Photo, 5),
-		config: &chat.Config{
-			Password:      password,
-			GuestPassword: fmt.Sprint(rand.Uint32()),
-		},
+func (server *server) run() {
+	if err := server.loadGobData(); err != nil {
+		slog.Warn("Can not load gob data", "err", err)
 	}
-	return server
-}
 
-func (server *Server) Run(config tgbotapi.UpdateConfig, owm *openweathermap.Config) {
+	go server.saveHandler()
 	go server.photosHandler()
 	go server.eventsHandler()
-	go server.sunsetHandler("Jurmala", owm)
+	go server.sunsetHandler("Jurmala", openweathermap.New(os.Getenv("WEATHER_KEY")))
 
-	updates := server.bot.GetUpdatesChan(config)
+	updates := server.bot.GetUpdatesChan(tgbotapi.NewUpdate(0))
 	for update := range updates {
 		if update.Message == nil {
 			continue
 		}
+
+		slog.Info("message", "text", update.Message.Text, "firstname", update.Message.From.FirstName)
+
 		go server.passToChat(update)
 	}
 }
 
-func (s *Server) passToChat(update tgbotapi.Update) {
+func (s *server) passToChat(update tgbotapi.Update) {
 	if _, ok := s.chats[update.FromChat().ID]; !ok {
+		slog.Info("new chat", "firstname", update.Message.From.FirstName)
+
 		chat := chat.New(s.bot, update.FromChat().ID, s.photos, s.events, s.config)
 		s.chats[chat.ID] = chat
 		go s.chatDestruct(chat.ID, time.Hour*8)
@@ -58,7 +54,7 @@ func (s *Server) passToChat(update tgbotapi.Update) {
 	s.chats[update.FromChat().ID].Handle(update)
 }
 
-func (server *Server) chatDestruct(id int64, dur time.Duration) {
+func (server *server) chatDestruct(id int64, dur time.Duration) {
 	time.Sleep(dur)
 	delete(server.chats, id)
 }

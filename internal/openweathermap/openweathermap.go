@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-type Config struct {
+type OpenWeatherMap struct {
 	ApiKey string
 }
 
@@ -18,13 +18,13 @@ type owmResponse struct {
 	} `json:"sys"`
 }
 
-func New(apiKey string) *Config {
-	return &Config{
+func New(apiKey string) *OpenWeatherMap {
+	return &OpenWeatherMap{
 		ApiKey: apiKey,
 	}
 }
 
-func (owm *Config) SunsetTime(city string) (time.Time, error) {
+func (owm *OpenWeatherMap) SunsetTime(city string) (time.Time, error) {
 	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city, owm.ApiKey)
 	resp, err := http.Get(url)
 	if err != nil {

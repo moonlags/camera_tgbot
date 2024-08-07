@@ -2,7 +2,7 @@ package chat
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -52,20 +52,23 @@ func (chat *Chat) unauthorizedHandler(update tgbotapi.Update) handlerFn {
 	case chat.Config.Password:
 		msg := tgbotapi.NewMessage(chat.ID, "Welcome, try sending a coordinates")
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		return chat.protectedHandler
 	case chat.Config.GuestPassword:
 		msg := tgbotapi.NewMessage(chat.ID, "Welcome, you have entered as guest, try sending a coordinates")
 		if _, err := chat.Bot.Send(msg); err != nil {
-			log.Fatal("Error sending a message:", err)
+			CantSendMessage(err)
 		}
 		chat.Config.GuestPassword = fmt.Sprint(rand.Uint32())
+
+		slog.Info("guest pass", "password", chat.Config.GuestPassword)
+
 		return chat.guestHandler
 	}
 	msg := tgbotapi.NewMessage(chat.ID, "Hello, please send a password")
 	if _, err := chat.Bot.Send(msg); err != nil {
-		log.Fatal("Error sending a message:", err)
+		CantSendMessage(err)
 	}
 	return chat.unauthorizedHandler
 }
