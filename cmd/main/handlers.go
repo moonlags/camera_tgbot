@@ -13,17 +13,6 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-func (s *server) saveHandler() {
-	for {
-		time.Sleep(1 * time.Hour)
-
-		if err := s.saveGobData(); err != nil {
-			slog.Error("Can not save gob data", "err", err)
-			os.Exit(1)
-		}
-	}
-}
-
 func (server *server) eventsHandler() {
 	for {
 		time.Sleep(time.Minute)

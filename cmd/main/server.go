@@ -22,11 +22,6 @@ type server struct {
 }
 
 func (server *server) run() {
-	if err := server.loadGobData(); err != nil {
-		slog.Warn("Can not load gob data", "err", err)
-	}
-
-	go server.saveHandler()
 	go server.photosHandler()
 	go server.eventsHandler()
 	go server.sunsetHandler("Jurmala", openweathermap.New(os.Getenv("WEATHER_KEY")))
