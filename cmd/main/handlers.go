@@ -20,6 +20,8 @@ func (server *server) eventsHandler() {
 			if !event.IsReady() {
 				continue
 			}
+			slog.Info("Event is ready", "event", event)
+
 			if len(server.photos) >= 5 {
 				msg := tgbotapi.NewMessage(event.ID(), "No place for event photo in queue, try again later")
 				if _, err := server.bot.Send(msg); err != nil {
