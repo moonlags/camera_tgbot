@@ -31,8 +31,10 @@ func (chat *Chat) commandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.Bot.Send(msg); err != nil {
 			CantSendMessage(err)
 		}
+
 		photo, _ := photo.New(x, y, zoom, mode, chat.ID)
-		chat.Photos <- photo
+		chat.QueuePhoto(update, photo)
+
 		return chat.protectedHandler
 	case "/zoom":
 		msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Your current zoom is %v, type a number between 0 and 10", chat.Zoom))
@@ -222,12 +224,13 @@ func (chat *Chat) protectedHandler(update tgbotapi.Update) handlerFn {
 		}
 		return chat.protectedHandler
 	}
-	chat.Photos <- photo
 
-	msg := tgbotapi.NewMessage(chat.ID, "Your photo is in the queue, please wait")
+	msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Taking photo on X: %d Y: %d Zoom: %d Mode: %d", x, y, chat.Zoom, chat.Mode))
 	if _, err := chat.Bot.Send(msg); err != nil {
 		CantSendMessage(err)
 	}
+
+	chat.QueuePhoto(update, photo)
 
 	return chat.protectedHandler
 }

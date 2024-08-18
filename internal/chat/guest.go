@@ -24,8 +24,10 @@ func (chat *Chat) guestCommandsHandler(update tgbotapi.Update) handlerFn {
 		if _, err := chat.Bot.Send(msg); err != nil {
 			CantSendMessage(err)
 		}
+
 		photo, _ := photo.New(x, y, zoom, mode, chat.ID)
-		chat.Photos <- photo
+		chat.QueuePhoto(update, photo)
+
 		return chat.guestHandler
 	case "/sunsettime":
 		stime := chat.Config.SunsetTime
@@ -64,12 +66,13 @@ func (chat *Chat) guestHandler(update tgbotapi.Update) handlerFn {
 		}
 		return chat.guestHandler
 	}
-	chat.Photos <- photo
 
-	msg := tgbotapi.NewMessage(chat.ID, "Your photo is in the queue, please wait")
+	msg := tgbotapi.NewMessage(chat.ID, fmt.Sprintf("Taking photo on X: %d Y: %d", x, y))
 	if _, err := chat.Bot.Send(msg); err != nil {
 		CantSendMessage(err)
 	}
+
+	chat.QueuePhoto(update, photo)
 
 	return chat.guestHandler
 }
