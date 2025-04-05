@@ -2,13 +2,14 @@ package openweathermap
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
 )
 
 type OpenWeatherMap struct {
-	ApiKey string
+	apiKey string
 }
 
 type owmResponse struct {
@@ -18,28 +19,26 @@ type owmResponse struct {
 	} `json:"sys"`
 }
 
-func New(apiKey string) *OpenWeatherMap {
-	return &OpenWeatherMap{
-		ApiKey: apiKey,
-	}
+func New(apiKey string) OpenWeatherMap {
+	return OpenWeatherMap{apiKey}
 }
 
-func (owm *OpenWeatherMap) SunsetTime(city string) (time.Time, error) {
-	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city, owm.ApiKey)
+func (owm OpenWeatherMap) SunsetTime(city string) (time.Time, error) {
+	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city, owm.apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		return time.Time{}, err
 	}
 	defer resp.Body.Close()
 
-	weather := new(owmResponse)
-	if err := json.NewDecoder(resp.Body).Decode(weather); err != nil {
+	var sunset owmResponse
+	if err := json.NewDecoder(resp.Body).Decode(&sunset); err != nil {
 		return time.Time{}, err
 	}
 
-	if weather.Message != "" {
-		return time.Time{}, fmt.Errorf("error from openweathermap: %v", err)
+	if sunset.Message != "" {
+		return time.Time{}, errors.New(sunset.Message)
 	}
 
-	return time.Unix(weather.Sys.Sunset, 0), nil
+	return time.Unix(sunset.Sys.Sunset, 0), nil
 }
