@@ -181,7 +181,7 @@ func (b *bot) handleOwner(update *echotron.Update) stateFn {
 		}
 
 		var x, y, zoom, mode int
-		if n, err := fmt.Sscanf(params, "%d %d %d %d", &x, &y, &zoom, &mode); err != nil && n < 4 {
+		if n, err := fmt.Sscanf(params, "%d %d %d %d", &x, &y, &zoom, &mode); err != nil && n < 2 {
 			slog.Error("failed to get arguments for eventsunset command", "err", err, "n", n)
 			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
