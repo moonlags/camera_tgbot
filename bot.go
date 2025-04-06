@@ -220,6 +220,10 @@ func (b *bot) handleOwner(update *echotron.Update) stateFn {
 			if _, err := b.SendMessage("event deleted", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
 			}
+		default:
+			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+				slog.Error("failed to send the message", "err", err)
+			}
 		}
 	case "guestpass":
 		if _, err := b.SendMessage(fmt.Sprintf("guest password is %s", *b.config.guestPassword), b.chatID, nil); err != nil {
