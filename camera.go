@@ -41,12 +41,12 @@ func (c *camera) take() (photo, error) {
 	slog.Info("taking photo", "x", p.x, "y", p.y, "zoom", p.zoom, "mode", p.mode, "id", p.reciever)
 
 	if err := c.setModeAndZoom(p.mode, p.zoom); err != nil {
-		return photo{}, err
+		return p, err
 	}
 
 	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.x), fmt.Sprint(p.y), "False", fmt.Sprint(c.currX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
 	if err := cmd.Run(); err != nil {
-		return photo{}, err
+		return p, err
 	}
 
 	c.currX = p.x

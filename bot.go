@@ -62,7 +62,7 @@ func (b *bot) handleOwner(update *echotron.Update) stateFn {
 
 	switch cmd {
 	case "/help", "help":
-		if _, err := b.SendMessage("1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. eventcreate X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. eventsunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. eventdelete - delete an event\n8. guestpass - generate one-time guest password", b.chatID, nil); err != nil {
+		if _, err := b.SendMessage("1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. event create X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. event sunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. event delete - delete an event\n8. guestpass - generate one-time guest password", b.chatID, nil); err != nil {
 			slog.Error("failed to send the message", "err", err)
 		}
 	case "photo":
@@ -118,97 +118,108 @@ func (b *bot) handleOwner(update *echotron.Update) stateFn {
 
 		photo, _ := newPhoto(b.chatID, x, y, zoom, mode)
 		b.camera.queuePhoto(photo)
-	case "eventcreate":
+	case "event":
 		if !found {
 			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
 			}
 			break
 		}
+		cmd, params, found := strings.Cut(params, " ")
 
-		if _, ok := b.events[b.chatID]; ok {
-			if _, err := b.SendMessage("event already exists, delete it with eventdelete", b.chatID, nil); err != nil {
+		switch cmd {
+		case "create":
+			if !found {
+				if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			if _, ok := b.events[b.chatID]; ok {
+				if _, err := b.SendMessage("event already exists, delete it with event delete", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			var hour, minute, x, y, zoom, mode int
+			if n, err := fmt.Sscanf(params, "%d %d %d %d %d %d", &hour, &minute, &x, &y, &zoom, &mode); err != nil && n < 4 {
+				slog.Error("failed to get arguments for eventcreate command", "err", err, "n", n)
+				if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			photo, err := newPhoto(b.chatID, x, y, zoom, mode)
+			if err != nil {
+				slog.Error("failed to call newPhoto", "err", err)
+				if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			event, err := newStaticEvent(photo, hour, minute)
+			if err != nil {
+				slog.Error("failed to call newStaticEvent", "err", err)
+				if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			b.events[b.chatID] = &event
+
+			if _, err := b.SendMessage("event created", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
 			}
-			break
-		}
+		case "sunset":
+			if !found {
+				if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
 
-		var hour, minute, x, y, zoom, mode int
-		if n, err := fmt.Sscanf(params, "%d %d %d %d %d %d", &hour, &minute, &x, &y, &zoom, &mode); err != nil && n < 4 {
-			slog.Error("failed to get arguments for eventcreate command", "err", err, "n", n)
-			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+			if _, ok := b.events[b.chatID]; ok {
+				if _, err := b.SendMessage("event already exists, delete it with eventdelete", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			var x, y, zoom, mode int
+			if n, err := fmt.Sscanf(params, "%d %d %d %d", &x, &y, &zoom, &mode); err != nil && n < 2 {
+				slog.Error("failed to get arguments for eventsunset command", "err", err, "n", n)
+				if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			photo, err := newPhoto(b.chatID, x, y, zoom, mode)
+			if err != nil {
+				slog.Error("failed to call newPhoto", "err", err)
+				if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
+					slog.Error("failed to send the message", "err", err)
+				}
+				break
+			}
+
+			event := newSunsetEvent(photo, b.config.sunset)
+			b.events[b.chatID] = &event
+
+			if _, err := b.SendMessage("event created", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
 			}
-			break
-		}
+		case "delete":
+			delete(b.events, b.chatID)
 
-		photo, err := newPhoto(b.chatID, x, y, zoom, mode)
-		if err != nil {
-			slog.Error("failed to call newPhoto", "err", err)
-			if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
+			if _, err := b.SendMessage("event deleted", b.chatID, nil); err != nil {
 				slog.Error("failed to send the message", "err", err)
 			}
-			break
-		}
-
-		event, err := newStaticEvent(photo, hour, minute)
-		if err != nil {
-			slog.Error("failed to call newStaticEvent", "err", err)
-			if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
-				slog.Error("failed to send the message", "err", err)
-			}
-			break
-		}
-
-		b.events[b.chatID] = &event
-
-		if _, err := b.SendMessage("event created", b.chatID, nil); err != nil {
-			slog.Error("failed to send the message", "err", err)
-		}
-	case "eventsunset":
-		if !found {
-			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
-				slog.Error("failed to send the message", "err", err)
-			}
-			break
-		}
-
-		if _, ok := b.events[b.chatID]; ok {
-			if _, err := b.SendMessage("event already exists, delete it with eventdelete", b.chatID, nil); err != nil {
-				slog.Error("failed to send the message", "err", err)
-			}
-			break
-		}
-
-		var x, y, zoom, mode int
-		if n, err := fmt.Sscanf(params, "%d %d %d %d", &x, &y, &zoom, &mode); err != nil && n < 2 {
-			slog.Error("failed to get arguments for eventsunset command", "err", err, "n", n)
-			if _, err := b.SendMessage("invalid command usage", b.chatID, nil); err != nil {
-				slog.Error("failed to send the message", "err", err)
-			}
-			break
-		}
-
-		photo, err := newPhoto(b.chatID, x, y, zoom, mode)
-		if err != nil {
-			slog.Error("failed to call newPhoto", "err", err)
-			if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
-				slog.Error("failed to send the message", "err", err)
-			}
-			break
-		}
-
-		event := newSunsetEvent(photo, b.config.sunset)
-		b.events[b.chatID] = &event
-
-		if _, err := b.SendMessage("event created", b.chatID, nil); err != nil {
-			slog.Error("failed to send the message", "err", err)
-		}
-	case "eventdelete":
-		delete(b.events, b.chatID)
-
-		if _, err := b.SendMessage("event deleted", b.chatID, nil); err != nil {
-			slog.Error("failed to send the message", "err", err)
 		}
 	case "guestpass":
 		if _, err := b.SendMessage(fmt.Sprintf("guest password is %s", *b.config.guestPassword), b.chatID, nil); err != nil {
