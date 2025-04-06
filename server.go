@@ -14,10 +14,10 @@ const CITY = "Jurmala"
 type server struct {
 	dsp    *echotron.Dispatcher
 	config config
-	bots   map[int64]*bot
 	events map[int64]event
 	sunset *time.Time
 	camera *camera
+	echotron.API
 }
 
 func newServer(c config) (server, error) {
@@ -28,10 +28,10 @@ func newServer(c config) (server, error) {
 
 	server := server{
 		config: c,
-		bots:   make(map[int64]*bot),
 		events: make(map[int64]event),
 		camera: camera,
 		sunset: &time.Time{},
+		API:    echotron.NewAPI(c.token),
 	}
 
 	dsp := echotron.NewDispatcher(c.token, server.newBot)
@@ -55,7 +55,6 @@ func (s *server) newBot(chatID int64) echotron.Bot {
 		API:    echotron.NewAPI(s.config.token),
 	}
 	bot.state = bot.handleMessage
-	s.bots[chatID] = bot
 	go s.destructBot(time.After(time.Hour*8), chatID)
 
 	return bot
@@ -65,7 +64,6 @@ func (s *server) destructBot(timech <-chan time.Time, chatID int64) {
 	<-timech
 	slog.Info("destructing bot", "chatID", chatID)
 	s.dsp.DelSession(chatID)
-	delete(s.bots, chatID)
 }
 
 func (s *server) run() error {
@@ -92,7 +90,7 @@ func (s *server) photoHandler() {
 			continue
 		}
 
-		if _, err := s.bots[photo.reciever].SendPhoto(echotron.NewInputFilePath("photoaf.jpg"), photo.reciever, &echotron.PhotoOptions{
+		if _, err := s.SendPhoto(echotron.NewInputFilePath("photoaf.jpg"), photo.reciever, &echotron.PhotoOptions{
 			Caption: fmt.Sprintf("x: %d y: %d", photo.x, photo.y),
 		}); err != nil {
 			slog.Error("failed to send photo", "id", photo.reciever, "err", err)
@@ -112,9 +110,8 @@ func (s *server) eventsHandler() {
 			photo := event.eventPhoto()
 			slog.Info("event is ready", "photo", event.eventPhoto())
 
-			b := s.bots[photo.reciever]
 			if err := s.camera.queuePhoto(photo); err != nil {
-				if _, err := b.SendMessage(err.Error(), b.chatID, nil); err != nil {
+				if _, err := s.SendMessage(err.Error(), photo.reciever, nil); err != nil {
 					slog.Error("failed to send the message", "err", err)
 				}
 				break
