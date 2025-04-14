@@ -29,7 +29,9 @@ type bot struct {
 
 func (b *bot) Update(update *echotron.Update) {
 	slog.Info("message", "id", b.chatID, "firstname", update.Message.From.FirstName)
-	b.state = b.state(update)
+	if update.Message != nil {
+		b.state = b.state(update)
+	}
 }
 
 func (b *bot) handleMessage(update *echotron.Update) stateFn {
