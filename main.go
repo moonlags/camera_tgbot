@@ -35,7 +35,5 @@ func main() {
 		log.Fatal("failed to initialize server:", err)
 	}
 
-	if err := server.run(); err != nil {
-		log.Fatal("failed to run bot:", err)
-	}
+	server.run()
 }

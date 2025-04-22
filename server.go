@@ -66,12 +66,15 @@ func (s *server) destructBot(timech <-chan time.Time, chatID int64) {
 	s.dsp.DelSession(chatID)
 }
 
-func (s *server) run() error {
+func (s *server) run() {
 	go s.photoHandler()
 	go s.eventsHandler()
 	go s.sunsetHandler(CITY)
 
-	return s.dsp.Poll()
+	for {
+		slog.Error("server returned an error", "err", s.dsp.Poll())
+		time.Sleep(time.Minute * 10)
+	}
 }
 
 func (s *server) photoHandler() {
