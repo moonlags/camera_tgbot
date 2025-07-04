@@ -44,7 +44,7 @@ func (c *camera) take() (photo, error) {
 		return p, err
 	}
 
-	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.x), fmt.Sprint(p.y), "False", fmt.Sprint(c.currX), "3", "wget -N -P . http://127.0.0.1:8080/photoaf.jpg")
+	cmd := exec.Command("./motor_driver.bin", fmt.Sprint(p.x), fmt.Sprint(p.y), "False", fmt.Sprint(c.currX), "3", "wget -O photoaf.jpg http://127.0.0.1:8080/photoaf.jpg")
 	if err := cmd.Run(); err != nil {
 		return p, err
 	}
