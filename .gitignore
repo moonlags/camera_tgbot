@@ -1,4 +1,2 @@
 .env
-phone_init.sh
-motor_driver.bin
-bin/
+camera_tgbot

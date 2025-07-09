@@ -4,7 +4,7 @@ go 1.24.1
 
 require (
 	github.com/NicoNex/echotron/v3 v3.43.0
-	github.com/joho/godotenv v1.5.1
+	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 )
 
 require golang.org/x/time v0.5.0 // indirect

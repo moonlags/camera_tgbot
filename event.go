@@ -1,62 +1,79 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 	"time"
 )
 
-type eventError struct {
-	object   string
-	from, to int
-	got      int
-}
-
-func (e *eventError) Error() string {
-	return fmt.Sprintf("event error: expected %s to be in range from %d to %d. Recieved %d!", e.object, e.from, e.to, e.got)
-}
-
-type event interface {
+type Event interface {
 	isReady() bool
-	eventPhoto() photo
+	eventPhoto() Photo
+	hour() int
+	minute() int
+	isSunset() bool
 }
 
-type staticEvent struct {
+type StaticEvent struct {
 	time  time.Time
-	photo photo
+	photo Photo
 }
 
-func newStaticEvent(p photo, hour int, minute int) (staticEvent, error) {
+func newStaticEvent(p Photo, hour uint8, minute uint8) (StaticEvent, error) {
 	if hour < 0 || hour > 23 {
-		return staticEvent{}, &eventError{"hour", 0, 23, hour}
+		return StaticEvent{}, errors.New("Invalid value for HOUR")
 	}
 	if minute < 0 || minute > 59 {
-		return staticEvent{}, &eventError{"minute", 0, 59, minute}
+		return StaticEvent{}, errors.New("Invalid value for MINUTE")
 	}
 
-	return staticEvent{time.Date(0, 0, 0, hour, minute, 0, 0, time.Local), p}, nil
+	return StaticEvent{time.Date(0, 0, 0, int(hour), int(minute), 0, 0, time.Local), p}, nil
 }
 
-func (p *staticEvent) isReady() bool {
+func (p *StaticEvent) isReady() bool {
 	return time.Now().Hour() == p.time.Hour() && time.Now().Minute() == p.time.Minute()
 }
 
-func (p *staticEvent) eventPhoto() photo {
+func (p *StaticEvent) eventPhoto() Photo {
 	return p.photo
 }
 
-type sunsetEvent struct {
+func (p *StaticEvent) hour() int {
+	return p.time.Hour()
+}
+
+func (p *StaticEvent) minute() int {
+	return p.time.Minute()
+}
+
+func (p *StaticEvent) isSunset() bool {
+	return false
+}
+
+type SunsetEvent struct {
 	time  *time.Time
-	photo photo
+	photo Photo
 }
 
-func newSunsetEvent(p photo, sunset *time.Time) sunsetEvent {
-	return sunsetEvent{sunset, p}
+func newSunsetEvent(p Photo, sunset *time.Time) SunsetEvent {
+	return SunsetEvent{sunset, p}
 }
 
-func (p *sunsetEvent) isReady() bool {
+func (p *SunsetEvent) isReady() bool {
 	return time.Now().Hour() == p.time.Hour() && time.Now().Minute() == p.time.Minute()
 }
 
-func (p *sunsetEvent) eventPhoto() photo {
+func (p *SunsetEvent) eventPhoto() Photo {
 	return p.photo
+}
+
+func (p *SunsetEvent) hour() int {
+	return p.time.Hour()
+}
+
+func (p *SunsetEvent) minute() int {
+	return p.time.Minute()
+}
+
+func (p *SunsetEvent) isSunset() bool {
+	return true
 }

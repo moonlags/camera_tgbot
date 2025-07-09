@@ -1,4 +1,4 @@
-package openweathermap
+package main
 
 import (
 	"encoding/json"
@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-type OpenWeatherMap struct {
-	apiKey string
-}
-
 type owmResponse struct {
 	Message string `json:"message"`
 	Sys     struct {
@@ -19,12 +15,8 @@ type owmResponse struct {
 	} `json:"sys"`
 }
 
-func New(apiKey string) OpenWeatherMap {
-	return OpenWeatherMap{apiKey}
-}
-
-func (owm OpenWeatherMap) SunsetTime(city string) (time.Time, error) {
-	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city, owm.apiKey)
+func getSunsetTime(apiKey string, city string) (time.Time, error) {
+	url := fmt.Sprintf("https://api.openweathermap.org/data/2.5/weather?q=%s&appid=%s", city, apiKey)
 	resp, err := http.Get(url)
 	if err != nil {
 		return time.Time{}, err
