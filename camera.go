@@ -42,12 +42,12 @@ type Camera struct {
 }
 
 func newCamera() (*Camera, error) {
-	cmd := exec.Command("./motor_driver.bin", "0", "0", "True", "0", "3", "")
+	cmd := exec.Command("./motor_driver.bin", "0", "0", "True", "0", "1", "")
 	if err := cmd.Run(); err != nil {
 		return nil, err
 	}
 
-	queue := make([]Photo, QUEUE_SIZE)
+	queue := make([]Photo, 0)
 	return &Camera{
 		queue: &queue,
 	}, nil
@@ -59,7 +59,7 @@ func (c *Camera) queuePhoto(p Photo) error {
 	}
 	*c.queue = append(*c.queue, p)
 
-	log.Printf("added photo to queue X: %d Y:%d ZOOM:%d MODE:%d RETRY:%v\n", p.x, p.y, p.zoom, p.mode, p.retry)
+	log.Printf("added photo to queue X: %d Y: %d ZOOM: %d MODE: %d RETRY: %v\n", p.x, p.y, p.zoom, p.mode, p.retry)
 	return nil
 }
 
@@ -79,7 +79,7 @@ func (c *Camera) take() (Photo, error) {
 	}
 
 	p := (*c.queue)[nearestPhotoIndex]
-	log.Printf("taking photo X: %d Y:%d ZOOM:%d MODE:%d RETRY:%v\n", p.x, p.y, p.zoom, p.mode, p.retry)
+	log.Printf("taking photo X: %d Y: %d ZOOM: %d MODE: %d RETRY: %v\n", p.x, p.y, p.zoom, p.mode, p.retry)
 
 	c.setModeAndZoom(p.mode, p.zoom)
 

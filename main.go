@@ -84,7 +84,7 @@ func photoHandler(bot *tgbotapi.BotAPI, cam *Camera) {
 		}
 
 		msg := tgbotapi.NewPhoto(photo.reciever, tgbotapi.FilePath("photoaf.jpg"))
-		msg.Caption = fmt.Sprintf("X: %d Y:%d ZOOM:%d MODE: %d", photo.x, photo.y, photo.zoom, photo.mode)
+		msg.Caption = fmt.Sprintf("X: %d Y: %d ZOOM: %d MODE: %d", photo.x, photo.y, photo.zoom, photo.mode)
 
 		if _, err := bot.Send(msg); err != nil {
 			log.Println("failed to send photo", err)
