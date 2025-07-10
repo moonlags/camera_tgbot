@@ -80,7 +80,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 	var msg tgbotapi.MessageConfig
 	switch cmd {
 	case "/help", "help":
-		msg := tgbotapi.NewMessage(id, "1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. event create X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. event sunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. event delete - delete an event\n8. guestpass - generate one-time guest password")
+		msg := tgbotapi.NewMessage(id, "1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. event create X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. event sunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. event delete NUM - delete an event under number NUM\n8. event list - list your events\n9. guestpass - generate one-time guest password")
 		if _, err := c.bot.Send(msg); err != nil {
 			log.Println("failed to send message", err)
 		}
@@ -148,8 +148,8 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 				break
 			}
 
-			if len(*c.events) >= 1 {
-				msg = tgbotapi.NewMessage(id, "event exists, delete it first")
+			if len(*c.events) >= 5 {
+				msg = tgbotapi.NewMessage(id, "you can have maximum of 5 events")
 				break
 			}
 
@@ -187,8 +187,8 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 				break
 			}
 
-			if len(*c.events) >= 1 {
-				msg = tgbotapi.NewMessage(id, "event exists, delete it first")
+			if len(*c.events) >= 5 {
+				msg = tgbotapi.NewMessage(id, "you can have maximum of 5 events")
 				break
 			}
 
@@ -214,14 +214,31 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 
 			msg = tgbotapi.NewMessage(id, "event created")
 		case "delete":
-			*c.events = (*c.events)[:0]
+			if !found {
+				msg = tgbotapi.NewMessage(id, "invalid command usage")
+				break
+			}
+
+			var eventnum uint8
+			if n, err := fmt.Sscanf(params, "%d", &eventnum); err != nil {
+				log.Println("failed to get arguments for event delete commamd", err, n)
+
+				msg = tgbotapi.NewMessage(id, "invalid command usage")
+				break
+			}
+
+			if int(eventnum) > len(*c.events) || eventnum == 0 {
+				msg = tgbotapi.NewMessage(id, "no event at this number")
+				break
+			}
+			*c.events = append((*c.events)[:eventnum], (*c.events)[eventnum+1:]...)
 
 			msg = tgbotapi.NewMessage(id, "event deleted")
 		case "list":
 			eventList := ""
 			for i, event := range *c.events {
 				photo := event.eventPhoto()
-				eventList += fmt.Sprintf("%d. X:%d Y:%d HOUR:%d MINUTE:%d ZOOM:%d MODE:%d SUNSET:%v\n", i+1, photo.x, photo.y, event.hour, event.minute, photo.zoom, photo.mode, event.isSunset())
+				eventList += fmt.Sprintf("%d. X:%d Y:%d HOUR:%d MINUTE:%d ZOOM:%d MODE:%d SUNSET:%v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())
 			}
 			msg = tgbotapi.NewMessage(id, eventList)
 		default:

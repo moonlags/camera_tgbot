@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"os/exec"
+	"time"
 )
 
 const QUEUE_SIZE = 10
@@ -35,7 +37,7 @@ func newPhoto(id int64, x uint16, y, zoom, mode uint8) (Photo, error) {
 }
 
 type Camera struct {
-	queue    chan Photo
+	queue    *[]Photo
 	currentX uint16
 }
 
@@ -45,23 +47,38 @@ func newCamera() (*Camera, error) {
 		return nil, err
 	}
 
+	queue := make([]Photo, QUEUE_SIZE)
 	return &Camera{
-		queue: make(chan Photo, QUEUE_SIZE),
+		queue: &queue,
 	}, nil
 }
 
 func (c *Camera) queuePhoto(p Photo) error {
-	if len(c.queue) >= QUEUE_SIZE {
+	if len(*c.queue) >= QUEUE_SIZE {
 		return errors.New("queue is full")
 	}
-	c.queue <- p
+	*c.queue = append(*c.queue, p)
 
 	log.Printf("added photo to queue X: %d Y:%d ZOOM:%d MODE:%d RETRY:%v\n", p.x, p.y, p.zoom, p.mode, p.retry)
 	return nil
 }
 
 func (c *Camera) take() (Photo, error) {
-	p := <-c.queue
+	for len(*c.queue) == 0 {
+		time.Sleep(time.Second)
+	}
+
+	smallestDistance := math.Abs(float64(c.currentX%180 - (*c.queue)[0].x%180))
+	nearestPhotoIndex := 0
+	for i, photo := range *c.queue {
+		dist := math.Abs(float64(c.currentX%180 - photo.x%180))
+		if dist < smallestDistance {
+			smallestDistance = dist
+			nearestPhotoIndex = i
+		}
+	}
+
+	p := (*c.queue)[nearestPhotoIndex]
 	log.Printf("taking photo X: %d Y:%d ZOOM:%d MODE:%d RETRY:%v\n", p.x, p.y, p.zoom, p.mode, p.retry)
 
 	c.setModeAndZoom(p.mode, p.zoom)
