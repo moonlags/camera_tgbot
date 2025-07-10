@@ -28,7 +28,7 @@ func main() {
 		log.Fatal("failed to initialize bot", err)
 	}
 
-	chats := make(map[int64]Chat)
+	chats := make(map[int64]*Chat)
 	events := make(map[int64]*[]Event)
 	sunsetTime := time.Now()
 	guestPassword := fmt.Sprint(rand.Uint32())
@@ -48,6 +48,8 @@ func main() {
 		chatid := update.Message.Chat.ID
 		chat, ok := chats[chatid]
 		if !ok {
+			log.Println("creating new chat for", update.Message.From.FirstName)
+
 			var chatEvents []Event
 			if _, ok := events[chatid]; ok {
 				chatEvents = *events[chatid]
@@ -55,7 +57,7 @@ func main() {
 				chatEvents = make([]Event, 0)
 			}
 
-			chat = newChat(bot, camera, &chatEvents, &sunsetTime, &guestPassword)
+			*chat = newChat(bot, camera, &chatEvents, &sunsetTime, &guestPassword)
 			chats[chatid] = chat
 
 			events[chatid] = &chatEvents
@@ -67,7 +69,7 @@ func main() {
 	}
 }
 
-func expireChat(timech <-chan time.Time, chatID int64, chats map[int64]Chat) {
+func expireChat(timech <-chan time.Time, chatID int64, chats map[int64]*Chat) {
 	<-timech
 	delete(chats, chatID)
 }
