@@ -228,21 +228,21 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 				msg = tgbotapi.NewMessage(id, "no event at this number")
 				break
 			}
-			*c.events = append((*c.events)[:eventnum], (*c.events)[eventnum+1:]...)
+			*c.events = append((*c.events)[:eventnum+1], (*c.events)[eventnum+2:]...)
 
 			msg = tgbotapi.NewMessage(id, "event deleted")
 		case "list":
 			eventList := ""
 			for i, event := range *c.events {
 				photo := event.eventPhoto()
-				eventList += fmt.Sprintf("%d. X:%d Y:%d HOUR:%d MINUTE:%d ZOOM:%d MODE:%d SUNSET:%v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())
+				eventList += fmt.Sprintf("%d. X: %d Y: %d HOUR: %d MINUTE: %d ZOOM: %d MODE: %d SUNSET: %v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())
 			}
 			msg = tgbotapi.NewMessage(id, eventList)
 		default:
 			msg = tgbotapi.NewMessage(id, "invalid command usage")
 		}
 	case "guestpass":
-		msg = tgbotapi.NewMessage(id, fmt.Sprint("guest password is", c.guestPassword))
+		msg = tgbotapi.NewMessage(id, fmt.Sprint("guest password is ", *c.guestPassword))
 	default:
 		msg = tgbotapi.NewMessage(id, "unknown command")
 	}
