@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"log/slog"
 	"math/rand/v2"
 	"os"
 	"time"
@@ -49,7 +48,12 @@ func main() {
 		chatid := update.Message.Chat.ID
 		chat, ok := chats[chatid]
 		if !ok {
-			chatEvents := make([]Event, 0)
+			var chatEvents []Event
+			if _, ok := events[chatid]; ok {
+				chatEvents = *events[chatid]
+			} else {
+				chatEvents = make([]Event, 0)
+			}
 
 			chat = newChat(bot, camera, &chatEvents, &sunsetTime, &guestPassword)
 			chats[chatid] = chat
@@ -58,6 +62,8 @@ func main() {
 
 			expireChat(time.After(time.Hour*8), chatid, chats)
 		}
+
+		go chat.handleUpdate(update)
 	}
 }
 
@@ -123,12 +129,12 @@ func sunsetHandler(city string, sunsetTime *time.Time) {
 	for {
 		sunset, err := getSunsetTime(apiKey, city)
 		if err != nil {
-			slog.Error("failed to get sunset time", "err", err)
+			log.Println("failed to get sunset time", err)
 			time.Sleep(time.Hour * 24)
 			continue
 		}
 
-		log.Print("sunset time", sunset)
+		log.Println("sunset time", sunset)
 		*sunsetTime = sunset
 
 		time.Sleep(time.Hour * 24)
