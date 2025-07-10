@@ -46,7 +46,7 @@ func (c *Chat) handleMessage(update tgbotapi.Update) stateFn {
 	switch update.Message.Text {
 	case PASSWORD:
 		log.Printf("%s logged in as owner\n", update.Message.From.FirstName)
-		msg := tgbotapi.NewMessage(id, "Welcome, see /help for commands")
+		msg := tgbotapi.NewMessage(id, "welcome, see /help for commands")
 		if _, err := c.bot.Send(msg); err != nil {
 			log.Println("failed to send message", err)
 		}
@@ -62,7 +62,7 @@ func (c *Chat) handleMessage(update tgbotapi.Update) stateFn {
 
 		return c.handleGuest
 	default:
-		msg := tgbotapi.NewMessage(id, "please send your passwod")
+		msg := tgbotapi.NewMessage(id, "please send your password")
 		if _, err := c.bot.Send(msg); err != nil {
 			log.Println("failed to send message", err)
 		}
@@ -80,10 +80,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 	var msg tgbotapi.MessageConfig
 	switch cmd {
 	case "/help", "help":
-		msg := tgbotapi.NewMessage(id, "1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. event create X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. event sunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. event delete NUM - delete an event under number NUM\n8. event list - list your events\n9. guestpass - generate one-time guest password")
-		if _, err := c.bot.Send(msg); err != nil {
-			log.Println("failed to send message", err)
-		}
+		msg = tgbotapi.NewMessage(id, "1. help - display list of commands\n2. photo X Y [ZOOM] [MODE] - take a photo, ZOOM and MODE are optional\n3. modes - list available modes\n4. random - take random photo\n5. event create X Y HOUR MINUTE [ZOOM] [MODE] - create an event, ZOOM and MODE are optional\n6. event sunset X Y [ZOOM] [MODE] - create sunset event, ZOOM and MODE are optional\n7. event delete NUM - delete an event under number NUM\n8. event list - list your events\n9. guestpass - generate one-time guest password")
 	case "photo":
 		if !found {
 			msg = tgbotapi.NewMessage(id, "invalid command usage")

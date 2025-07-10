@@ -80,6 +80,7 @@ func (c *Camera) take() (Photo, error) {
 
 	p := (*c.queue)[nearestPhotoIndex]
 	log.Printf("taking photo X: %d Y: %d ZOOM: %d MODE: %d RETRY: %v\n", p.x, p.y, p.zoom, p.mode, p.retry)
+	*c.queue = append((*c.queue)[:nearestPhotoIndex], (*c.queue)[nearestPhotoIndex+1:]...)
 
 	c.setModeAndZoom(p.mode, p.zoom)
 
