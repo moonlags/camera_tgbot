@@ -60,7 +60,7 @@ func main() {
 
 			events[chatid] = &chatEvents
 
-			expireChat(time.After(time.Hour*8), chatid, chats)
+			go expireChat(time.After(time.Hour*8), chatid, chats)
 		}
 
 		go chat.handleUpdate(update)
