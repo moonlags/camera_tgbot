@@ -46,8 +46,7 @@ func main() {
 		log.Printf("recieved message %s from %s\n", update.Message.Text, update.Message.From.FirstName)
 
 		chatid := update.Message.Chat.ID
-		chat, ok := chats[chatid]
-		if !ok {
+		if _, ok := chats[chatid]; !ok {
 			log.Println("creating new chat for", update.Message.From.FirstName)
 
 			var chatEvents []Event
@@ -57,15 +56,15 @@ func main() {
 				chatEvents = make([]Event, 0)
 			}
 
-			*chat = newChat(bot, camera, &chatEvents, &sunsetTime, &guestPassword)
-			chats[chatid] = chat
+			chat := newChat(bot, camera, &chatEvents, &sunsetTime, &guestPassword)
+			chats[chatid] = &chat
 
 			events[chatid] = &chatEvents
 
 			go expireChat(time.After(time.Hour*8), chatid, chats)
 		}
 
-		go chat.handleUpdate(update)
+		go chats[chatid].handleUpdate(update)
 	}
 }
 
