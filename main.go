@@ -40,7 +40,7 @@ func main() {
 
 	photoRequests := make(chan Photo)
 	go tcpHandler(bot, photoRequests)
-	go eventsHandler(bot, events, photoRequests)
+	go eventsHandler(events, photoRequests)
 	go sunsetHandler("Jurmala", &sunsetTime)
 
 	u := tgbotapi.NewUpdate(-1)
@@ -85,12 +85,20 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 		log.Fatal("TCP_ADDRESS variable is not set")
 	}
 
-	conn, err := net.Dial("tcp", address)
-	if err != nil {
-		log.Fatal("failed to connect to camera", err)
-	}
-	defer conn.Close()
+	for {
+		log.Println("connection to", address)
 
+		conn, err := net.Dial("tcp", address)
+		if err != nil {
+			log.Fatalln("failed to connect to camera", err)
+		}
+		defer conn.Close()
+
+		handleRequests(bot, conn, photoRequests)
+	}
+}
+
+func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Photo) {
 	reader := bufio.NewReader(conn)
 	for photo := range photoRequests {
 		buf := make([]byte, len(PASSWORD)+int(unsafe.Sizeof(PhotoConfig{})))
@@ -99,6 +107,10 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 		if _, err := binary.Encode(buf, binary.BigEndian, photo.toConfig()); err != nil {
 			log.Println("failed to encode photo config", err)
 			continue
+		}
+		if _, err := conn.Write(buf); err != nil {
+			log.Println("failed to write to connection", err)
+			break
 		}
 
 		var code uint8
@@ -117,22 +129,24 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 			photoData := make([]byte, lenght)
 			if _, err := io.ReadFull(reader, photoData); err != nil {
 				log.Println("failed to read photo data", err)
+				break
 			}
 
 			msg := tgbotapi.NewPhoto(photo.reciever, tgbotapi.FileBytes{Name: "photoaf.jpg", Bytes: photoData})
 			msg.Caption = fmt.Sprintf("X: %d Y: %d ZOOM: %d MODE: %d", photo.x, photo.y, photo.zoom, photo.mode)
-
+			if _, err := bot.Send(msg); err != nil {
+				log.Println("failed to send message", err)
+			}
 		} else {
 			msg := tgbotapi.NewMessage(photo.reciever, "Try again later")
 			if _, err := bot.Send(msg); err != nil {
 				log.Println("failed to send message", err)
 			}
 		}
-
 	}
 }
 
-func eventsHandler(bot *tgbotapi.BotAPI, events map[int64]*[]Event, photoRequests chan Photo) {
+func eventsHandler(events map[int64]*[]Event, photoRequests chan Photo) {
 	for {
 		time.Sleep(time.Minute)
 		for _, chatEvents := range events {
