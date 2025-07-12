@@ -13,9 +13,9 @@ import (
 type stateFn func(tgbotapi.Update) stateFn
 
 type Chat struct {
-	bot    *tgbotapi.BotAPI
-	camera *Camera
-	events *[]Event
+	bot           *tgbotapi.BotAPI
+	events        *[]Event
+	photoRequests chan Photo
 
 	sunsetTime    *time.Time
 	guestPassword *string
@@ -23,11 +23,11 @@ type Chat struct {
 	state stateFn
 }
 
-func newChat(bot *tgbotapi.BotAPI, cam *Camera, events *[]Event, st *time.Time, gp *string) Chat {
+func newChat(bot *tgbotapi.BotAPI, events *[]Event, photoRequests chan Photo, st *time.Time, gp *string) Chat {
 	chat := Chat{
 		bot:           bot,
-		camera:        cam,
 		events:        events,
+		photoRequests: photoRequests,
 		sunsetTime:    st,
 		guestPassword: gp,
 	}
@@ -102,13 +102,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 			msg = tgbotapi.NewMessage(id, err.Error())
 			break
 		}
-
-		if err := c.camera.queuePhoto(photo); err != nil {
-			log.Println("failed to queue photo", err)
-
-			msg = tgbotapi.NewMessage(id, err.Error())
-			break
-		}
+		c.photoRequests <- photo
 
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 	case "modes":
@@ -121,13 +115,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 
 		x, y, zoom, mode := rand.Intn(361), rand.Intn(91), rand.Intn(11), rand.Intn(14)
 		photo, _ := newPhoto(id, uint16(x), uint8(y), uint8(zoom), uint8(mode))
-
-		if err := c.camera.queuePhoto(photo); err != nil {
-			log.Println("failed to queue photo", err)
-
-			msg = tgbotapi.NewMessage(id, err.Error())
-			break
-		}
+		c.photoRequests <- photo
 
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
@@ -235,7 +223,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 			eventList := ""
 			for i, event := range *c.events {
 				photo := event.eventPhoto()
-				eventList += fmt.Sprintf("%d. X: %d Y: %d HOUR: %d MINUTE: %d ZOOM: %d MODE: %d SUNSET: %v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())
+				eventList += fmt.Sprintf("%d. x: %d y: %d hour: %02d minute: %02d zoom: %d mode: %d sunset: %v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())
 			}
 			msg = tgbotapi.NewMessage(id, eventList)
 		default:
@@ -284,13 +272,7 @@ func (c *Chat) handleGuest(update tgbotapi.Update) stateFn {
 			msg = tgbotapi.NewMessage(id, err.Error())
 			break
 		}
-
-		if err := c.camera.queuePhoto(photo); err != nil {
-			log.Println("failed to queue photo", err)
-
-			msg = tgbotapi.NewMessage(id, err.Error())
-			break
-		}
+		c.photoRequests <- photo
 
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 	case "modes":
@@ -303,13 +285,7 @@ func (c *Chat) handleGuest(update tgbotapi.Update) stateFn {
 
 		x, y, zoom, mode := rand.Intn(361), rand.Intn(91), rand.Intn(11), rand.Intn(14)
 		photo, _ := newPhoto(id, uint16(x), uint8(y), uint8(zoom), uint8(mode))
-
-		if err := c.camera.queuePhoto(photo); err != nil {
-			log.Println("failed to queue photo", err)
-
-			msg = tgbotapi.NewMessage(id, err.Error())
-			break
-		}
+		c.photoRequests <- photo
 
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
