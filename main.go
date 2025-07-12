@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bufio"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -10,7 +9,6 @@ import (
 	"net"
 	"os"
 	"time"
-	"unsafe"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -99,37 +97,32 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 }
 
 func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Photo) {
-	reader := bufio.NewReader(conn)
 	for photo := range photoRequests {
-		buf := make([]byte, len(PASSWORD)+int(unsafe.Sizeof(PhotoConfig{})))
-		binary.Encode(buf, binary.BigEndian, PASSWORD)
-
-		if _, err := binary.Encode(buf, binary.BigEndian, photo.toConfig()); err != nil {
-			log.Println("failed to encode photo config", err)
-			continue
+		if _, err := conn.Write([]byte(PASSWORD)); err != nil {
+			log.Println("failed to write password to connection:", err)
+			break
 		}
 
-		log.Println("sending buf", string(buf))
-		if _, err := conn.Write(buf); err != nil {
-			log.Println("failed to write to connection", err)
+		if err := binary.Write(conn, binary.BigEndian, photo.toConfig()); err != nil {
+			log.Println("failed to write photo config", err)
 			break
 		}
 
 		var code uint8
-		if err := binary.Read(reader, binary.BigEndian, &code); err != nil {
+		if err := binary.Read(conn, binary.BigEndian, &code); err != nil {
 			log.Println("failed to read message code", err)
 			break
 		}
 
 		if code == PhotoReady {
 			var lenght int32
-			if err := binary.Read(reader, binary.BigEndian, &lenght); err != nil {
+			if err := binary.Read(conn, binary.BigEndian, &lenght); err != nil {
 				log.Println("failed to read photo lenght", err)
 				break
 			}
 
 			photoData := make([]byte, lenght)
-			if _, err := io.ReadFull(reader, photoData); err != nil {
+			if _, err := io.ReadFull(conn, photoData); err != nil {
 				log.Println("failed to read photo data", err)
 				break
 			}
