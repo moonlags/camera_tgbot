@@ -4,8 +4,6 @@ import (
 	"errors"
 )
 
-const QUEUE_SIZE = 10
-
 type Photo struct {
 	reciever      int64
 	x             uint16

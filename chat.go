@@ -216,7 +216,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 				msg = tgbotapi.NewMessage(id, "no event at this number")
 				break
 			}
-			*c.events = append((*c.events)[:eventnum+1], (*c.events)[eventnum+2:]...)
+			*c.events = append((*c.events)[:eventnum-1], (*c.events)[eventnum:]...)
 
 			msg = tgbotapi.NewMessage(id, "event deleted")
 		case "list":

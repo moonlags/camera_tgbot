@@ -108,6 +108,8 @@ func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Phot
 			log.Println("failed to encode photo config", err)
 			continue
 		}
+
+		log.Println("sending buf", string(buf))
 		if _, err := conn.Write(buf); err != nil {
 			log.Println("failed to write to connection", err)
 			break
