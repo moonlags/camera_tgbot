@@ -113,6 +113,7 @@ func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Phot
 			log.Println("failed to read message code", err)
 			break
 		}
+		log.Println("recieved code", code)
 
 		if code == PhotoReady {
 			var lenght int32
@@ -120,6 +121,7 @@ func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Phot
 				log.Println("failed to read photo lenght", err)
 				break
 			}
+			log.Println("recieved lenght", lenght)
 
 			photoData := make([]byte, lenght)
 			if _, err := io.ReadFull(conn, photoData); err != nil {
