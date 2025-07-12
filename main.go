@@ -90,9 +90,9 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 
 		conn, err := net.Dial("tcp", address)
 		if err != nil {
-			log.Fatalln("failed to connect to camera", err)
+			log.Println("failed to connect to camera", err)
+			time.Sleep(time.Minute)
 		}
-		defer conn.Close()
 
 		handleRequests(bot, conn, photoRequests)
 	}
