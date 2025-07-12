@@ -62,7 +62,7 @@ func main() {
 				chatEvents = make([]Event, 0)
 			}
 
-			chat := newChat(bot, &chatEvents, &sunsetTime, &guestPassword)
+			chat := newChat(bot, &chatEvents, photoRequests, &sunsetTime, &guestPassword)
 			chats[chatid] = &chat
 
 			events[chatid] = &chatEvents
@@ -122,8 +122,10 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 			msg := tgbotapi.NewPhoto(photo.reciever, tgbotapi.FileBytes{Name: "photoaf.jpg", Bytes: photoData})
 			msg.Caption = fmt.Sprintf("X: %d Y: %d ZOOM: %d MODE: %d", photo.x, photo.y, photo.zoom, photo.mode)
 
+		} else {
+			msg := tgbotapi.NewMessage(photo.reciever, "Try again later")
 			if _, err := bot.Send(msg); err != nil {
-				log.Println("failed to send photo", err)
+				log.Println("failed to send message", err)
 			}
 		}
 
@@ -141,12 +143,7 @@ func eventsHandler(bot *tgbotapi.BotAPI, events map[int64]*[]Event, photoRequest
 				photo := event.eventPhoto()
 				log.Println("event is ready", event.eventPhoto())
 
-				if err := cam.queuePhoto(photo); err != nil {
-					msg := tgbotapi.NewMessage(photo.reciever, err.Error())
-					if _, err := bot.Send(msg); err != nil {
-						log.Println("failed to send photo", err)
-					}
-				}
+				photoRequests <- photo
 			}
 		}
 	}
