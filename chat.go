@@ -115,10 +115,11 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 
 		x, y, zoom, mode := rand.Intn(361), rand.Intn(91), rand.Intn(11), rand.Intn(14)
 		photo, _ := newPhoto(id, uint16(x), uint8(y), uint8(zoom), uint8(mode))
-		c.photoRequests <- photo
 
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
+
+		c.photoRequests <- photo
 	case "event":
 		if !found {
 			msg = tgbotapi.NewMessage(id, "invalid command usage")
@@ -285,10 +286,11 @@ func (c *Chat) handleGuest(update tgbotapi.Update) stateFn {
 
 		x, y, zoom, mode := rand.Intn(361), rand.Intn(91), rand.Intn(11), rand.Intn(14)
 		photo, _ := newPhoto(id, uint16(x), uint8(y), uint8(zoom), uint8(mode))
-		c.photoRequests <- photo
 
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
+
+		c.photoRequests <- photo
 	default:
 		msg = tgbotapi.NewMessage(id, "unknown command")
 	}
