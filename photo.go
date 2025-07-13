@@ -35,3 +35,7 @@ func newPhoto(id int64, x uint16, y, zoom, mode uint8) (Photo, error) {
 func (p Photo) toConfig() PhotoConfig {
 	return PhotoConfig{X: p.x, Y: p.y, Zoom: p.zoom, Mode: p.mode}
 }
+
+func queuePhoto(photoRequests chan Photo, p Photo) {
+	photoRequests <- p
+}

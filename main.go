@@ -154,7 +154,7 @@ func eventsHandler(events map[int64]*[]Event, photoRequests chan Photo) {
 				photo := event.eventPhoto()
 				log.Println("event is ready", event.eventPhoto())
 
-				photoRequests <- photo
+				go queuePhoto(photoRequests, photo)
 			}
 		}
 	}

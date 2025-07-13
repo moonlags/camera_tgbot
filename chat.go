@@ -102,7 +102,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 			msg = tgbotapi.NewMessage(id, err.Error())
 			break
 		}
-		c.photoRequests <- photo
+		go queuePhoto(c.photoRequests, photo)
 
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 	case "modes":
@@ -119,7 +119,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 
-		c.photoRequests <- photo
+		go queuePhoto(c.photoRequests, photo)
 	case "event":
 		if !found {
 			msg = tgbotapi.NewMessage(id, "invalid command usage")
@@ -273,7 +273,7 @@ func (c *Chat) handleGuest(update tgbotapi.Update) stateFn {
 			msg = tgbotapi.NewMessage(id, err.Error())
 			break
 		}
-		c.photoRequests <- photo
+		go queuePhoto(c.photoRequests, photo)
 
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 	case "modes":
@@ -290,7 +290,7 @@ func (c *Chat) handleGuest(update tgbotapi.Update) stateFn {
 		time.Sleep(time.Second * 3)
 		msg = tgbotapi.NewMessage(id, fmt.Sprintf("taking photo on x: %d y: %d zoom: %d mode: %d", x, y, zoom, mode))
 
-		c.photoRequests <- photo
+		go queuePhoto(c.photoRequests, photo)
 	default:
 		msg = tgbotapi.NewMessage(id, "unknown command")
 	}
