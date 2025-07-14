@@ -92,26 +92,27 @@ func tcpHandler(bot *tgbotapi.BotAPI, photoRequests chan Photo) {
 			time.Sleep(time.Minute)
 		}
 
-		handleRequests(bot, conn, photoRequests)
+		photo := handleRequests(bot, conn, photoRequests)
+		queuePhoto(photoRequests, photo)
 	}
 }
 
-func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Photo) {
+func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Photo) Photo {
 	for photo := range photoRequests {
 		if _, err := conn.Write([]byte(PASSWORD)); err != nil {
 			log.Println("failed to write password to connection:", err)
-			break
+			return photo
 		}
 
 		if err := binary.Write(conn, binary.BigEndian, photo.toConfig()); err != nil {
 			log.Println("failed to write photo config", err)
-			break
+			return photo
 		}
 
 		var code uint8
 		if err := binary.Read(conn, binary.BigEndian, &code); err != nil {
 			log.Println("failed to read message code", err)
-			break
+			return photo
 		}
 		log.Println("recieved code", code)
 
@@ -119,14 +120,14 @@ func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Phot
 			var lenght int32
 			if err := binary.Read(conn, binary.BigEndian, &lenght); err != nil {
 				log.Println("failed to read photo lenght", err)
-				break
+				return photo
 			}
 			log.Println("recieved lenght", lenght)
 
 			photoData := make([]byte, lenght)
 			if _, err := io.ReadFull(conn, photoData); err != nil {
 				log.Println("failed to read photo data", err)
-				break
+				return photo
 			}
 
 			msg := tgbotapi.NewPhoto(photo.reciever, tgbotapi.FileBytes{Name: "photoaf.jpg", Bytes: photoData})
@@ -141,6 +142,7 @@ func handleRequests(bot *tgbotapi.BotAPI, conn net.Conn, photoRequests chan Phot
 			}
 		}
 	}
+	return Photo{} // unreachable
 }
 
 func eventsHandler(events map[int64]*[]Event, photoRequests chan Photo) {
