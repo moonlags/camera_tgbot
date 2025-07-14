@@ -66,7 +66,8 @@ func main() {
 			log.Println("creating new chat for", update.Message.From.FirstName)
 
 			if _, ok := events[chatid]; !ok {
-				*events[chatid] = make([]Event, 0)
+				ev := make([]Event, 0)
+				events[chatid] = &ev
 			}
 			chatEvents := *events[chatid]
 
