@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -16,6 +17,7 @@ type Chat struct {
 	bot           *tgbotapi.BotAPI
 	events        *[]Event
 	photoRequests chan Photo
+	db            *sql.DB
 
 	sunsetTime    *time.Time
 	guestPassword *string
@@ -23,11 +25,12 @@ type Chat struct {
 	state stateFn
 }
 
-func newChat(bot *tgbotapi.BotAPI, events *[]Event, photoRequests chan Photo, st *time.Time, gp *string) Chat {
+func newChat(bot *tgbotapi.BotAPI, events *[]Event, photoRequests chan Photo, db *sql.DB, st *time.Time, gp *string) Chat {
 	chat := Chat{
 		bot:           bot,
 		events:        events,
 		photoRequests: photoRequests,
+		db:            db,
 		sunsetTime:    st,
 		guestPassword: gp,
 	}
@@ -164,6 +167,10 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 				break
 			}
 
+			if err := event.ToDB(c.db); err != nil {
+				log.Println("failed to put event in db", err)
+			}
+
 			*c.events = append(*c.events, &event)
 
 			msg = tgbotapi.NewMessage(id, "event created")
@@ -196,6 +203,10 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 			}
 
 			event := newSunsetEvent(photo, c.sunsetTime)
+			if err := event.ToDB(c.db); err != nil {
+				log.Println("failed to put event in db", err)
+			}
+
 			*c.events = append(*c.events, &event)
 
 			msg = tgbotapi.NewMessage(id, "event created")
@@ -216,6 +227,10 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 			if int(eventnum) > len(*c.events) || eventnum == 0 {
 				msg = tgbotapi.NewMessage(id, "no event at this number")
 				break
+			}
+
+			if err := (*c.events)[eventnum].removeFromDB(c.db); err != nil {
+				log.Println("failed to remove event from db", err)
 			}
 			*c.events = append((*c.events)[:eventnum-1], (*c.events)[eventnum:]...)
 

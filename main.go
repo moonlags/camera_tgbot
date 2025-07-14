@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/binary"
 	"fmt"
 	"io"
@@ -21,6 +22,12 @@ const (
 var PASSWORD = os.Getenv("CAMERA_PASSWORD")
 
 func main() {
+	db, err := openDatabase()
+	if err != nil {
+		log.Fatalln("failed to open database", err)
+	}
+	defer db.Close()
+
 	token := os.Getenv("BOT_TOKEN")
 	if token == "" {
 		log.Fatal("BOT_TOKEN variable is not set")
@@ -32,14 +39,18 @@ func main() {
 	}
 
 	chats := make(map[int64]*Chat)
-	events := make(map[int64]*[]Event)
 	sunsetTime := time.Now()
 	guestPassword := fmt.Sprint(rand.Uint32())
 
+	events, err := getEventsFromDB(db, &sunsetTime)
+	if err != nil {
+		log.Fatalln("failed to get events from database", err)
+	}
+
 	photoRequests := make(chan Photo)
 	go tcpHandler(bot, photoRequests)
-	go eventsHandler(events, photoRequests)
 	go sunsetHandler("Jurmala", &sunsetTime)
+	go eventsHandler(events, photoRequests)
 
 	u := tgbotapi.NewUpdate(-1)
 	updates := bot.GetUpdatesChan(u)
@@ -53,17 +64,13 @@ func main() {
 		if _, ok := chats[chatid]; !ok {
 			log.Println("creating new chat for", update.Message.From.FirstName)
 
-			var chatEvents []Event
-			if _, ok := events[chatid]; ok {
-				chatEvents = *events[chatid]
-			} else {
-				chatEvents = make([]Event, 0)
+			if _, ok := events[chatid]; !ok {
+				*events[chatid] = make([]Event, 0)
 			}
+			chatEvents := *events[chatid]
 
-			chat := newChat(bot, &chatEvents, photoRequests, &sunsetTime, &guestPassword)
+			chat := newChat(bot, &chatEvents, photoRequests, db, &sunsetTime, &guestPassword)
 			chats[chatid] = &chat
-
-			events[chatid] = &chatEvents
 
 			go expireChat(time.After(time.Hour*8), chatid, chats)
 		}
@@ -181,4 +188,58 @@ func sunsetHandler(city string, sunsetTime *time.Time) {
 
 		time.Sleep(time.Hour * 24)
 	}
+}
+
+func openDatabase() (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", "./events.db")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("CREATE TABLE IF NOT EXISTS events (userid INTEGER, x INTEGER, y INTEGER, zoom INTEGER, mode INTEGER, hour INTEGER, minute INTEGER, sunset BOOL)")
+	if err != nil {
+		return nil, err
+	}
+
+	return db, nil
+}
+
+func getEventsFromDB(db *sql.DB, sunsetTime *time.Time) (map[int64]*[]Event, error) {
+	rows, err := db.Query("SELECT * FROM events")
+	if err != nil {
+		return nil, err
+	}
+
+	events := make(map[int64]*[]Event)
+	for rows.Next() {
+		var event EventDB
+		if err := rows.Scan(&event.Userid, &event.X, &event.Y, &event.Zoom, &event.Mode, &event.Hour, &event.Minute, &event.Sunset); err != nil {
+			log.Println("failed to scan db row", err)
+			continue
+		}
+		log.Println("read from db", event)
+
+		photo, err := newPhoto(event.Userid, event.X, event.Y, event.Zoom, event.Mode)
+		if err != nil {
+			log.Println("db has invalid values", err)
+			continue
+		}
+
+		if _, ok := events[event.Userid]; !ok {
+			*events[event.Userid] = make([]Event, 0)
+		}
+
+		if event.Sunset {
+			ev := newSunsetEvent(photo, sunsetTime)
+			*events[event.Userid] = append(*events[event.Userid], &ev)
+		} else {
+			ev, err := newStaticEvent(photo, event.Hour, event.Minute)
+			if err != nil {
+				log.Println("db has invalid values for hour and minute", err)
+				continue
+			}
+			*events[event.Userid] = append(*events[event.Userid], &ev)
+		}
+	}
+	return events, nil
 }
