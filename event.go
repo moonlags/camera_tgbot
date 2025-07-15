@@ -106,7 +106,7 @@ type EventDB struct {
 	Y      uint8
 	Zoom   uint8
 	Mode   uint8
-	Hour   uint8
-	Minute uint8
+	Hour   *uint8
+	Minute *uint8
 	Sunset bool
 }

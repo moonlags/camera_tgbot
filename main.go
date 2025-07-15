@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -236,7 +237,11 @@ func getEventsFromDB(db *sql.DB, sunsetTime *time.Time) (map[int64]*[]Event, err
 			ev := newSunsetEvent(photo, sunsetTime)
 			*events[event.Userid] = append(*events[event.Userid], &ev)
 		} else {
-			ev, err := newStaticEvent(photo, event.Hour, event.Minute)
+			if event.Hour == nil || event.Minute == nil {
+				return nil, errors.New("db has invalid static event hour and minute values")
+			}
+
+			ev, err := newStaticEvent(photo, *event.Hour, *event.Minute)
 			if err != nil {
 				log.Println("db has invalid values for hour and minute", err)
 				continue
