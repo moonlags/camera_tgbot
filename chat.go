@@ -236,7 +236,7 @@ func (c *Chat) handleOwner(update tgbotapi.Update) stateFn {
 
 			msg = tgbotapi.NewMessage(id, "event deleted")
 		case "list":
-			eventList := ""
+			eventList := "event list:\n"
 			for i, event := range *c.events {
 				photo := event.eventPhoto()
 				eventList += fmt.Sprintf("%d. x: %d y: %d hour: %02d minute: %02d zoom: %d mode: %d sunset: %v\n", i+1, photo.x, photo.y, event.hour(), event.minute(), photo.zoom, photo.mode, event.isSunset())

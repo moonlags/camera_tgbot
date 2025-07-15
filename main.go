@@ -69,9 +69,9 @@ func main() {
 				ev := make([]Event, 0)
 				events[chatid] = &ev
 			}
-			chatEvents := *events[chatid]
+			chatEvents := events[chatid]
 
-			chat := newChat(bot, &chatEvents, photoRequests, db, &sunsetTime, &guestPassword)
+			chat := newChat(bot, chatEvents, photoRequests, db, &sunsetTime, &guestPassword)
 			chats[chatid] = &chat
 
 			go expireChat(time.After(time.Hour*8), chatid, chats)
