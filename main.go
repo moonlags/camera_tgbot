@@ -228,7 +228,8 @@ func getEventsFromDB(db *sql.DB, sunsetTime *time.Time) (map[int64]*[]Event, err
 		}
 
 		if _, ok := events[event.Userid]; !ok {
-			*events[event.Userid] = make([]Event, 0)
+			ev := make([]Event, 0)
+			events[event.Userid] = &ev
 		}
 
 		if event.Sunset {
